@@ -1,0 +1,463 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ============ 위쪽: 방 화면 ============ */
+#room {
+  position: relative;
+  height: 50vh;
+  overflow: hidden;
+  border-bottom: 4px solid #4a3323;
+}
+
+.room-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #f6e2c1 0%, #f6e2c1 65%, #d8a463 65%, #d8a463 100%);
+}
+
+.wall {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 65%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.15) 0 2px, transparent 2px 120px),
+    linear-gradient(180deg, #f8e8ce, #f0d8ac);
+}
+
+.window {
+  position: absolute;
+  top: 8%;
+  right: 8%;
+  width: 22%;
+  aspect-ratio: 4 / 5;
+  background: linear-gradient(180deg, #aee3f5, #6fc3e6);
+  border: 8px solid #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.window-cross-v {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  background: #ffffff;
+}
+
+.window-cross-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 6px;
+  margin-top: -3px;
+  background: #ffffff;
+}
+
+.rug {
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30%;
+  height: 12%;
+  background: #e07a5f;
+  border-radius: 50%;
+  opacity: 0.85;
+  box-shadow: 0 0 0 8px rgba(255,255,255,0.4) inset;
+}
+
+.desk {
+  position: absolute;
+  bottom: 2%;
+  left: 5%;
+  width: 20%;
+  height: 16%;
+  background: #8a5a3b;
+  border-radius: 4px;
+  box-shadow: inset 0 -8px 0 rgba(0,0,0,0.15);
+}
+
+.shelf {
+  position: absolute;
+  top: 10%;
+  left: 6%;
+  width: 16%;
+  height: 6%;
+  background: #8a5a3b;
+  border-radius: 3px;
+}
+.shelf::before, .shelf::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  width: 3px;
+  height: 10%;
+  background: #6b4327;
+}
+.shelf::before { left: 4px; }
+.shelf::after { right: 4px; }
+
+.plant {
+  position: absolute;
+  bottom: 3%;
+  right: 6%;
+  font-size: 3rem;
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.2));
+}
+
+.upload-area {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #ffffffdd;
+  border: 2px solid #4a3323;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  user-select: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.upload-btn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+#wander-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.wander-photo {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+.wander-photo:active {
+  cursor: grabbing;
+}
+.wander-photo.dragging {
+  box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+  z-index: 50;
+}
+
+.photo-message {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4a3323e6;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  z-index: 60;
+  max-width: 80%;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+.photo-message.hidden {
+  display: none;
+}
+
+/* ============ 아래쪽: 도구 패널 ============ */
+#toolbox {
+  height: 50vh;
+  background: #fdfaf5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 16px;
+}
+
+.stopwatch-panel {
+  text-align: center;
+}
+
+.stopwatch-panel h2 {
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.stopwatch-display {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 14px;
+  letter-spacing: 1px;
+}
+
+.stopwatch-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.toolbox-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ============ 버튼 공통 ============ */
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 14px 26px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+  filter: brightness(0.96);
+}
+
+.btn-blue {
+  background: #2f7ff2;
+  color: #fff;
+}
+.btn-blue.active {
+  background: #1d4fa3;
+}
+
+.btn-yellow {
+  background: #ffcb3d;
+  color: #4a3323;
+}
+
+.btn-green {
+  background: #3cb371;
+  color: #fff;
+}
+
+.btn-gray {
+  background: #e2e2e2;
+  color: #444;
+}
+
+/* ============ 모달 공통 ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 32px;
+  width: min(92vw, 520px);
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: none;
+  background: #f0f0f0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.modal-close:hover {
+  background: #e0e0e0;
+}
+
+/* ============ 뽀모도로 모달 ============ */
+.pomodoro-modal {
+  text-align: center;
+}
+
+.pomodoro-desc {
+  color: #777;
+  margin-top: -6px;
+}
+
+.pomodoro-phase {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #d9822b;
+  margin-top: 18px;
+}
+
+.pomodoro-display {
+  font-size: 3.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin: 10px 0;
+}
+
+.pomodoro-cycle {
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.pomodoro-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ============ 체크리스트 모달 ============ */
+.todo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-row label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: #555;
+  gap: 4px;
+}
+
+.form-row input,
+.form-row select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.todo-add-btn {
+  align-self: flex-end;
+  margin-top: 4px;
+}
+
+.todo-list-wrap {
+  overflow-x: auto;
+}
+
+.todo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.todo-table th, .todo-table td {
+  padding: 8px 6px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+
+.todo-table td.content-cell {
+  white-space: normal;
+  text-align: left;
+  max-width: 160px;
+}
+
+.todo-table tr.done td {
+  color: #aaa;
+  text-decoration: line-through;
+}
+
+.importance-상 { color: #e63946; font-weight: 700; }
+.importance-중 { color: #d9822b; font-weight: 700; }
+.importance-하 { color: #3cb371; font-weight: 700; }
+
+.todo-delete-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 1rem;
+}
+.todo-delete-btn:hover {
+  color: #e63946;
+}
+
+.todo-empty {
+  text-align: center;
+  color: #999;
+  padding: 20px 0;
+}
+
+/* ============ 반응형 ============ */
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+  }
+  .toolbox-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  .toolbox-buttons .btn {
+    width: 100%;
+  }
+}

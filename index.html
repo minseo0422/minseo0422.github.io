@@ -1,4 +1,133 @@
-<html>
-<head><title>테스트</title></head>
-<body>거제~ 야허~ ( •̀ ω •́ )y</body>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나만의 공부방 타이머</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== 위쪽 : 방 화면 ===== -->
+  <section id="room">
+    <div class="room-bg">
+      <div class="wall"></div>
+      <div class="window">
+        <div class="window-cross-v"></div>
+        <div class="window-cross-h"></div>
+      </div>
+      <div class="rug"></div>
+      <div class="desk"></div>
+      <div class="shelf"></div>
+      <div class="plant">🪴</div>
+    </div>
+
+    <div class="upload-area">
+      <label for="photo-upload" class="upload-btn" title="사진 업로드">
+        📷 사진 업로드
+      </label>
+      <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+    </div>
+
+    <div id="wander-layer"></div>
+
+    <div id="photo-message" class="photo-message hidden"></div>
+  </section>
+
+  <!-- ===== 아래쪽 : 타이머 / 체크리스트 ===== -->
+  <section id="toolbox">
+
+    <div class="stopwatch-panel">
+      <h2>스톱워치</h2>
+      <div id="stopwatch-display" class="stopwatch-display">00:00:00.00</div>
+      <div class="stopwatch-controls">
+        <button id="stopwatch-toggle" class="btn btn-blue">시작</button>
+        <button id="stopwatch-reset" class="btn btn-gray">초기화</button>
+      </div>
+    </div>
+
+    <div class="toolbox-buttons">
+      <button id="open-pomodoro" class="btn btn-yellow">🍅 뽀모도로 타이머</button>
+      <button id="open-checklist" class="btn btn-green">✅ 체크리스트</button>
+    </div>
+
+  </section>
+
+  <!-- ===== 뽀모도로 모달 ===== -->
+  <div id="pomodoro-modal" class="modal-overlay hidden">
+    <div class="modal pomodoro-modal">
+      <button class="modal-close" data-close="pomodoro-modal">✕</button>
+      <h2>🍅 뽀모도로 타이머</h2>
+      <p class="pomodoro-desc">50분 집중 · 10분 휴식을 반복합니다</p>
+      <div id="pomodoro-phase" class="pomodoro-phase">집중 시간</div>
+      <div id="pomodoro-display" class="pomodoro-display">50:00</div>
+      <div id="pomodoro-cycle" class="pomodoro-cycle">진행 횟수: 0회</div>
+      <div class="pomodoro-controls">
+        <button id="pomodoro-toggle" class="btn btn-yellow">시작</button>
+        <button id="pomodoro-skip" class="btn btn-gray">다음 단계</button>
+        <button id="pomodoro-reset" class="btn btn-gray">초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 체크리스트 모달 ===== -->
+  <div id="checklist-modal" class="modal-overlay hidden">
+    <div class="modal checklist-modal">
+      <button class="modal-close" data-close="checklist-modal">✕</button>
+      <h2>✅ 할일 체크리스트</h2>
+
+      <form id="todo-form" class="todo-form">
+        <div class="form-row">
+          <label>과목
+            <input type="text" id="todo-subject" placeholder="예: 수학" required>
+          </label>
+          <label>내용
+            <input type="text" id="todo-content" placeholder="예: 3단원 문제풀이" required>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>소요시간(분)
+            <input type="number" id="todo-duration" min="1" placeholder="예: 60" required>
+          </label>
+          <label>중요도
+            <select id="todo-importance">
+              <option value="상">상</option>
+              <option value="중" selected>중</option>
+              <option value="하">하</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>시작일
+            <input type="date" id="todo-start">
+          </label>
+          <label>마감일
+            <input type="date" id="todo-end">
+          </label>
+        </div>
+        <button type="submit" class="btn btn-green todo-add-btn">+ 할일 추가</button>
+      </form>
+
+      <div class="todo-list-wrap">
+        <table class="todo-table">
+          <thead>
+            <tr>
+              <th>완료</th>
+              <th>과목</th>
+              <th>내용</th>
+              <th>소요시간</th>
+              <th>중요도</th>
+              <th>기간</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="todo-list"></tbody>
+        </table>
+        <p id="todo-empty" class="todo-empty">등록된 할일이 없습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
 </html>
