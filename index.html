@@ -70,7 +70,7 @@
 
                 <div class="page page-pomodoro">
                   <h2>🍅 뽀모도로 타이머</h2>
-                  <p class="pomodoro-desc">50분 집중 · 10분 휴식을 반복합니다</p>
+                  <p id="pomodoro-desc-text" class="pomodoro-desc">50분 집중 · 10분 휴식을 반복합니다</p>
                   <div id="pomodoro-phase" class="pomodoro-phase">집중 시간</div>
                   <div id="pomodoro-display" class="pomodoro-display">50:00</div>
                   <div id="pomodoro-cycle" class="pomodoro-cycle">진행 횟수: 0회</div>
@@ -224,11 +224,19 @@
 
       <div class="settings-section settings-toggle-row">
         <label><input type="checkbox" id="turbulent-toggle"> 사진이 격정적으로 움직이기</label>
+        <p class="settings-hint">사진을 우클릭하면 그 사진만 이동속도·크기·반전·격렬함·충돌 여부를 따로 설정하거나 삭제할 수 있어요.</p>
       </div>
 
-      <div class="settings-section settings-toggle-row">
-        <label><input type="checkbox" id="flip-toggle" checked> 벽에 부딪히면 사진 좌우 반전</label>
-        <p class="settings-hint">사진을 우클릭하면 그 사진만 이동속도·반전·격렬함·충돌 여부를 따로 설정하거나 삭제할 수 있어요.</p>
+      <div class="settings-section">
+        <div class="settings-label">뽀모도로 시간</div>
+        <div class="settings-row">
+          <label class="settings-hint-inline">집중
+            <input type="number" id="pomodoro-focus-input" class="bg-size-input" min="1" value="50"> 분
+          </label>
+          <label class="settings-hint-inline">휴식
+            <input type="number" id="pomodoro-break-input" class="bg-size-input" min="1" value="10"> 분
+          </label>
+        </div>
       </div>
 
       <div class="settings-section">
@@ -308,16 +316,15 @@
       <input type="range" id="pcm-speed" min="0" max="200">
     </div>
     <div class="popover-row">
-      <span>좌우반전(벽 충돌시)</span>
-      <select id="pcm-flip">
-        <option value="inherit">기본값</option>
-        <option value="on">항상 켜짐</option>
-        <option value="off">항상 꺼짐</option>
-      </select>
+      <span>크기</span>
+      <input type="range" id="pcm-size" min="40" max="220">
     </div>
     <div class="popover-row">
       <span>움직임 격렬함</span>
       <input type="range" id="pcm-turbulence" min="0" max="100">
+    </div>
+    <div class="popover-row">
+      <label><input type="checkbox" id="pcm-flip"> 벽에 부딪히면 좌우 반전</label>
     </div>
     <div class="popover-row">
       <label><input type="checkbox" id="pcm-collide"> 다른 사진과 부딪히기</label>

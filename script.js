@@ -216,6 +216,29 @@ const StudyStore = (function () {
 })();
 
 /* =========================================================
+   2-1. 방 설정 저장소 (새로고침해도 유지되는 설정값)
+========================================================= */
+const SettingsStore = (function () {
+  const KEY = "study-room-settings";
+
+  function load() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function save(patch) {
+    const merged = { ...load(), ...patch };
+    localStorage.setItem(KEY, JSON.stringify(merged));
+    return merged;
+  }
+
+  return { load, save };
+})();
+
+/* =========================================================
    3. 순공시간 (스톱워치, 새벽 5시 자동 초기화 + 기록 + 수동 시간 조정)
 ========================================================= */
 (function studyTimer() {
@@ -464,21 +487,32 @@ const StudyStore = (function () {
    5. 뽀모도로 타이머 (50분 집중 / 10분 휴식 반복)
 ========================================================= */
 (function pomodoro() {
-  const FOCUS_SEC = 50 * 60;
-  const BREAK_SEC = 10 * 60;
+  const saved = SettingsStore.load();
 
   const phaseEl = document.getElementById("pomodoro-phase");
   const displayEl = document.getElementById("pomodoro-display");
   const cycleEl = document.getElementById("pomodoro-cycle");
+  const descEl = document.getElementById("pomodoro-desc-text");
   const toggleBtn = document.getElementById("pomodoro-toggle");
   const skipBtn = document.getElementById("pomodoro-skip");
   const resetBtn = document.getElementById("pomodoro-reset");
+  const focusInput = document.getElementById("pomodoro-focus-input");
+  const breakInput = document.getElementById("pomodoro-break-input");
+
+  let focusMin = saved.pomodoroFocusMin || 50;
+  let breakMin = saved.pomodoroBreakMin || 10;
+  focusInput.value = focusMin;
+  breakInput.value = breakMin;
 
   let phase = "focus"; // 'focus' | 'break'
-  let remaining = FOCUS_SEC;
+  let remaining = focusMin * 60;
   let running = false;
   let timerId = null;
   let completedCycles = 0;
+
+  function updateDesc() {
+    descEl.textContent = `${focusMin}분 집중 · ${breakMin}분 휴식을 반복합니다`;
+  }
 
   function render() {
     const m = Math.floor(remaining / 60);
@@ -493,10 +527,10 @@ const StudyStore = (function () {
     if (phase === "focus") {
       completedCycles += 1;
       phase = "break";
-      remaining = BREAK_SEC;
+      remaining = breakMin * 60;
     } else {
       phase = "focus";
-      remaining = FOCUS_SEC;
+      remaining = focusMin * 60;
     }
     playBeep(phase === "focus" ? 880 : 523);
     render();
@@ -535,11 +569,36 @@ const StudyStore = (function () {
   resetBtn.addEventListener("click", () => {
     pause();
     phase = "focus";
-    remaining = FOCUS_SEC;
+    remaining = focusMin * 60;
     completedCycles = 0;
     render();
   });
 
+  focusInput.addEventListener("change", () => {
+    const val = Math.max(Number(focusInput.value) || 1, 1);
+    focusInput.value = val;
+    focusMin = val;
+    SettingsStore.save({ pomodoroFocusMin: focusMin });
+    updateDesc();
+    if (!running && phase === "focus") {
+      remaining = focusMin * 60;
+      render();
+    }
+  });
+
+  breakInput.addEventListener("change", () => {
+    const val = Math.max(Number(breakInput.value) || 1, 1);
+    breakInput.value = val;
+    breakMin = val;
+    SettingsStore.save({ pomodoroBreakMin: breakMin });
+    updateDesc();
+    if (!running && phase === "break") {
+      remaining = breakMin * 60;
+      render();
+    }
+  });
+
+  updateDesc();
   render();
 })();
 
@@ -692,12 +751,32 @@ const StudyStore = (function () {
   const bgReset = document.getElementById("bg-reset-btn");
   const bgSizeInput = document.getElementById("bg-size-input");
 
+  function trySave(patch) {
+    try {
+      SettingsStore.save(patch);
+    } catch (e) {
+      /* localStorage 용량 초과 시 배경 저장은 건너뜀 */
+    }
+  }
+
+  function applySize(px) {
+    roomBg.style.backgroundSize = px && px > 0 ? `${px}px auto` : "cover";
+  }
+
+  const saved = SettingsStore.load();
+  if (saved.bgImage) roomBg.style.backgroundImage = `url(${saved.bgImage})`;
+  if (saved.bgSizePx) {
+    bgSizeInput.value = saved.bgSizePx;
+    applySize(saved.bgSizePx);
+  }
+
   bgUpload.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file || !file.type.startsWith("image/")) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       roomBg.style.backgroundImage = `url(${ev.target.result})`;
+      trySave({ bgImage: ev.target.result });
     };
     reader.readAsDataURL(file);
     bgUpload.value = "";
@@ -706,12 +785,14 @@ const StudyStore = (function () {
   bgReset.addEventListener("click", () => {
     roomBg.style.backgroundImage = "none";
     bgSizeInput.value = "";
-    roomBg.style.backgroundSize = "cover";
+    applySize(null);
+    trySave({ bgImage: null, bgSizePx: null });
   });
 
   bgSizeInput.addEventListener("input", () => {
     const px = Number(bgSizeInput.value);
-    roomBg.style.backgroundSize = bgSizeInput.value && px > 0 ? `${px}px auto` : "cover";
+    applySize(bgSizeInput.value ? px : null);
+    trySave({ bgSizePx: bgSizeInput.value ? px : null });
   });
 })();
 
@@ -725,6 +806,8 @@ const StudyStore = (function () {
   const volume = document.getElementById("music-volume");
   const filenameEl = document.getElementById("music-filename");
 
+  const saved = SettingsStore.load();
+  if (saved.musicVolume !== undefined) volume.value = saved.musicVolume;
   audio.volume = Number(volume.value) / 100;
 
   upload.addEventListener("change", (e) => {
@@ -751,6 +834,7 @@ const StudyStore = (function () {
 
   volume.addEventListener("input", () => {
     audio.volume = Number(volume.value) / 100;
+    SettingsStore.save({ musicVolume: Number(volume.value) });
   });
 })();
 
@@ -862,21 +946,26 @@ const StudyStore = (function () {
   const speedSlider = document.getElementById("speed-slider");
   const sizeSlider = document.getElementById("size-slider");
   const turbulentToggle = document.getElementById("turbulent-toggle");
-  const flipToggle = document.getElementById("flip-toggle");
 
   const ctxMenu = document.getElementById("photo-context-menu");
   const ctxSpeed = document.getElementById("pcm-speed");
+  const ctxSize = document.getElementById("pcm-size");
   const ctxFlip = document.getElementById("pcm-flip");
   const ctxTurbulence = document.getElementById("pcm-turbulence");
   const ctxCollide = document.getElementById("pcm-collide");
   const ctxReset = document.getElementById("pcm-reset");
   const ctxDelete = document.getElementById("pcm-delete");
 
-  const photos = []; // { el, x, y, vx, vy, width, height, aspect, dragging, flipOverride, flipped, speedOverride, turbulenceOverride, collide, clickTimer }
-  let currentSpeed = Number(speedSlider.value);
-  let currentMaxDim = Number(sizeSlider.value);
-  let turbulent = turbulentToggle.checked;
-  let globalFlip = flipToggle.checked;
+  const savedSettings = SettingsStore.load();
+
+  const photos = []; // { el, x, y, vx, vy, width, height, aspect, dragging, flipEnabled, flipped, speedOverride, sizeOverride, turbulenceOverride, collide, clickTimer }
+  let currentSpeed = savedSettings.speed ?? Number(speedSlider.value);
+  let currentMaxDim = savedSettings.size ?? Number(sizeSlider.value);
+  let turbulent = savedSettings.turbulent ?? turbulentToggle.checked;
+  speedSlider.value = currentSpeed;
+  sizeSlider.value = currentMaxDim;
+  turbulentToggle.checked = turbulent;
+
   let lastTime = null;
   let messageTimeout = null;
   let activeMessagePhoto = null;
@@ -892,11 +981,27 @@ const StudyStore = (function () {
     return { w: maxDim * aspect, h: maxDim };
   }
 
+  function resizePhoto(photo, maxDim) {
+    const { w, h } = computeSize(photo.aspect, maxDim);
+    const bounds = room.getBoundingClientRect();
+    photo.width = w;
+    photo.height = h;
+    photo.el.style.width = `${w}px`;
+    photo.el.style.height = `${h}px`;
+    photo.x = Math.min(photo.x, Math.max(bounds.width - w, 0));
+    photo.y = Math.min(photo.y, Math.max(bounds.height - h, 0));
+    photo.el.style.left = `${photo.x}px`;
+    photo.el.style.top = `${photo.y}px`;
+  }
+
   function effectiveSpeed(photo) {
     return photo.speedOverride ?? currentSpeed;
   }
+  function effectiveMaxDim(photo) {
+    return photo.sizeOverride ?? currentMaxDim;
+  }
   function effectiveFlip(photo) {
-    return photo.flipOverride === null ? globalFlip : photo.flipOverride;
+    return photo.flipEnabled;
   }
   function effectiveTurbulence(photo) {
     return photo.turbulenceOverride ?? (turbulent ? 70 : 0);
@@ -937,9 +1042,10 @@ const StudyStore = (function () {
       height: h,
       aspect,
       dragging: false,
-      flipOverride: null, // null: 기본 설정 따름, true: 항상 반전, false: 항상 유지
+      flipEnabled: false,
       flipped: false,
       speedOverride: null,
+      sizeOverride: null,
       turbulenceOverride: null,
       collide: false,
       clickTimer: null,
@@ -1050,7 +1156,8 @@ const StudyStore = (function () {
   function openContextMenu(photo, clientX, clientY) {
     contextPhoto = photo;
     ctxSpeed.value = effectiveSpeed(photo);
-    ctxFlip.value = photo.flipOverride === null ? "inherit" : photo.flipOverride ? "on" : "off";
+    ctxSize.value = effectiveMaxDim(photo);
+    ctxFlip.checked = photo.flipEnabled;
     ctxTurbulence.value = effectiveTurbulence(photo);
     ctxCollide.checked = photo.collide;
 
@@ -1082,9 +1189,15 @@ const StudyStore = (function () {
     contextPhoto.vx = Math.cos(angle) * val;
     contextPhoto.vy = Math.sin(angle) * val;
   });
+  ctxSize.addEventListener("input", () => {
+    if (!contextPhoto) return;
+    const val = Number(ctxSize.value);
+    contextPhoto.sizeOverride = val;
+    resizePhoto(contextPhoto, val);
+  });
   ctxFlip.addEventListener("change", () => {
     if (!contextPhoto) return;
-    contextPhoto.flipOverride = ctxFlip.value === "inherit" ? null : ctxFlip.value === "on";
+    contextPhoto.flipEnabled = ctxFlip.checked;
   });
   ctxTurbulence.addEventListener("input", () => {
     if (!contextPhoto) return;
@@ -1097,12 +1210,14 @@ const StudyStore = (function () {
   ctxReset.addEventListener("click", () => {
     if (!contextPhoto) return;
     contextPhoto.speedOverride = null;
+    contextPhoto.sizeOverride = null;
     contextPhoto.turbulenceOverride = null;
-    contextPhoto.flipOverride = null;
+    contextPhoto.flipEnabled = false;
     contextPhoto.collide = false;
     const angle = Math.atan2(contextPhoto.vy, contextPhoto.vx);
     contextPhoto.vx = Math.cos(angle) * currentSpeed;
     contextPhoto.vy = Math.sin(angle) * currentSpeed;
+    resizePhoto(contextPhoto, currentMaxDim);
     closeContextMenu();
   });
   ctxDelete.addEventListener("click", () => {
@@ -1218,6 +1333,7 @@ const StudyStore = (function () {
 
   speedSlider.addEventListener("input", () => {
     currentSpeed = Number(speedSlider.value);
+    SettingsStore.save({ speed: currentSpeed });
     photos.forEach((photo) => {
       if (photo.speedOverride !== null) return;
       const angle = Math.atan2(photo.vy, photo.vx);
@@ -1228,26 +1344,16 @@ const StudyStore = (function () {
 
   sizeSlider.addEventListener("input", () => {
     currentMaxDim = Number(sizeSlider.value);
-    const bounds = room.getBoundingClientRect();
+    SettingsStore.save({ size: currentMaxDim });
     photos.forEach((photo) => {
-      const { w, h } = computeSize(photo.aspect, currentMaxDim);
-      photo.width = w;
-      photo.height = h;
-      photo.el.style.width = `${w}px`;
-      photo.el.style.height = `${h}px`;
-      photo.x = Math.min(photo.x, Math.max(bounds.width - w, 0));
-      photo.y = Math.min(photo.y, Math.max(bounds.height - h, 0));
-      photo.el.style.left = `${photo.x}px`;
-      photo.el.style.top = `${photo.y}px`;
+      if (photo.sizeOverride !== null) return;
+      resizePhoto(photo, currentMaxDim);
     });
   });
 
   turbulentToggle.addEventListener("change", () => {
     turbulent = turbulentToggle.checked;
-  });
-
-  flipToggle.addEventListener("change", () => {
-    globalFlip = flipToggle.checked;
+    SettingsStore.save({ turbulent });
   });
 
   fileInput.addEventListener("change", (e) => {
