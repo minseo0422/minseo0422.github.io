@@ -690,6 +690,7 @@ const StudyStore = (function () {
   const roomBg = document.getElementById("room-bg");
   const bgUpload = document.getElementById("bg-upload");
   const bgReset = document.getElementById("bg-reset-btn");
+  const bgSizeInput = document.getElementById("bg-size-input");
 
   bgUpload.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
@@ -704,6 +705,134 @@ const StudyStore = (function () {
 
   bgReset.addEventListener("click", () => {
     roomBg.style.backgroundImage = "none";
+    bgSizeInput.value = "";
+    roomBg.style.backgroundSize = "cover";
+  });
+
+  bgSizeInput.addEventListener("input", () => {
+    const px = Number(bgSizeInput.value);
+    roomBg.style.backgroundSize = bgSizeInput.value && px > 0 ? `${px}px auto` : "cover";
+  });
+})();
+
+/* =========================================================
+   7-1. 배경음악
+========================================================= */
+(function backgroundMusic() {
+  const audio = document.getElementById("bg-audio");
+  const upload = document.getElementById("music-upload");
+  const toggleBtn = document.getElementById("music-toggle");
+  const volume = document.getElementById("music-volume");
+  const filenameEl = document.getElementById("music-filename");
+
+  audio.volume = Number(volume.value) / 100;
+
+  upload.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file || !file.type.startsWith("audio/")) return;
+    audio.src = URL.createObjectURL(file);
+    toggleBtn.disabled = false;
+    filenameEl.textContent = `현재 곡: ${file.name}`;
+    audio.play();
+    toggleBtn.textContent = "⏸ 일시정지";
+    upload.value = "";
+  });
+
+  toggleBtn.addEventListener("click", () => {
+    if (!audio.src) return;
+    if (audio.paused) {
+      audio.play();
+      toggleBtn.textContent = "⏸ 일시정지";
+    } else {
+      audio.pause();
+      toggleBtn.textContent = "▶ 재생";
+    }
+  });
+
+  volume.addEventListener("input", () => {
+    audio.volume = Number(volume.value) / 100;
+  });
+})();
+
+/* =========================================================
+   7-2. 습관 만들기 (매일 새벽 5시 완료여부 초기화)
+========================================================= */
+(function habits() {
+  const STORAGE_KEY = "study-room-habits";
+
+  const openBtn = document.getElementById("open-habits");
+  const form = document.getElementById("habit-form");
+  const nameInput = document.getElementById("habit-name");
+  const listEl = document.getElementById("habit-list");
+  const emptyEl = document.getElementById("habit-empty");
+
+  let habitList = load();
+
+  function load() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(habitList));
+  }
+  function isDoneToday(habit) {
+    return habit.lastDoneKey === StudyStore.getStudyDayKey(Date.now());
+  }
+
+  function render() {
+    listEl.innerHTML = "";
+    emptyEl.classList.toggle("hidden", habitList.length > 0);
+    habitList.forEach((habit) => {
+      const done = isDoneToday(habit);
+      const tr = document.createElement("tr");
+      if (done) tr.classList.add("done");
+      tr.innerHTML = `
+        <td><input type="checkbox" ${done ? "checked" : ""} data-action="toggle" data-id="${habit.id}"></td>
+        <td>${escapeHtml(habit.name)}</td>
+        <td><button class="todo-delete-btn" data-action="delete" data-id="${habit.id}" title="삭제">🗑</button></td>
+      `;
+      listEl.appendChild(tr);
+    });
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    if (!name) return;
+    habitList.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name,
+      lastDoneKey: null,
+    });
+    save();
+    render();
+    form.reset();
+  });
+
+  listEl.addEventListener("change", (e) => {
+    const target = e.target.closest('[data-action="toggle"]');
+    if (!target) return;
+    const habit = habitList.find((h) => h.id === target.dataset.id);
+    if (!habit) return;
+    habit.lastDoneKey = target.checked ? StudyStore.getStudyDayKey(Date.now()) : null;
+    save();
+    render();
+  });
+
+  listEl.addEventListener("click", (e) => {
+    const target = e.target.closest('[data-action="delete"]');
+    if (!target) return;
+    habitList = habitList.filter((h) => h.id !== target.dataset.id);
+    save();
+    render();
+  });
+
+  openBtn.addEventListener("click", () => {
+    render();
+    openModal("habit-modal");
   });
 })();
 
@@ -719,20 +848,28 @@ const StudyStore = (function () {
 /* =========================================================
    9. 방 안을 돌아다니는 업로드 사진
       - 원본 비율 유지 / 속도·크기 조절 / 드래그 / 말풍선(움직임 유지)
-      - 격정적으로 움직이기, 벽 충돌 시 좌우반전(개별 설정 가능)
+      - 격정적으로 움직이기, 벽 충돌 시 좌우반전, 사진끼리 충돌
+      - 우클릭: 사진별 이동속도·반전·격렬함·충돌 여부 설정 + 삭제
 ========================================================= */
 (function wanderingPhotos() {
   const room = document.getElementById("room");
   const layer = document.getElementById("wander-layer");
   const fileInput = document.getElementById("photo-upload");
   const messageBox = document.getElementById("photo-message");
-  const flipIndicator = document.getElementById("flip-indicator");
   const speedSlider = document.getElementById("speed-slider");
   const sizeSlider = document.getElementById("size-slider");
   const turbulentToggle = document.getElementById("turbulent-toggle");
   const flipToggle = document.getElementById("flip-toggle");
 
-  const photos = []; // { el, x, y, vx, vy, width, height, aspect, dragging, flipOverride, flipped, clickTimer }
+  const ctxMenu = document.getElementById("photo-context-menu");
+  const ctxSpeed = document.getElementById("pcm-speed");
+  const ctxFlip = document.getElementById("pcm-flip");
+  const ctxTurbulence = document.getElementById("pcm-turbulence");
+  const ctxCollide = document.getElementById("pcm-collide");
+  const ctxReset = document.getElementById("pcm-reset");
+  const ctxDelete = document.getElementById("pcm-delete");
+
+  const photos = []; // { el, x, y, vx, vy, width, height, aspect, dragging, flipOverride, flipped, speedOverride, turbulenceOverride, collide, clickTimer }
   let currentSpeed = Number(speedSlider.value);
   let currentMaxDim = Number(sizeSlider.value);
   let turbulent = turbulentToggle.checked;
@@ -740,7 +877,7 @@ const StudyStore = (function () {
   let lastTime = null;
   let messageTimeout = null;
   let activeMessagePhoto = null;
-  let flipIndicatorTimeout = null;
+  let contextPhoto = null;
 
   function randomVelocity(speed) {
     const angle = Math.random() * Math.PI * 2;
@@ -750,6 +887,16 @@ const StudyStore = (function () {
   function computeSize(aspect, maxDim) {
     if (aspect >= 1) return { w: maxDim, h: maxDim / aspect };
     return { w: maxDim * aspect, h: maxDim };
+  }
+
+  function effectiveSpeed(photo) {
+    return photo.speedOverride ?? currentSpeed;
+  }
+  function effectiveFlip(photo) {
+    return photo.flipOverride === null ? globalFlip : photo.flipOverride;
+  }
+  function effectiveTurbulence(photo) {
+    return photo.turbulenceOverride ?? (turbulent ? 70 : 0);
   }
 
   function addPhoto(src) {
@@ -789,6 +936,9 @@ const StudyStore = (function () {
       dragging: false,
       flipOverride: null, // null: 기본 설정 따름, true: 항상 반전, false: 항상 유지
       flipped: false,
+      speedOverride: null,
+      turbulenceOverride: null,
+      collide: false,
       clickTimer: null,
     };
     img.style.left = `${x}px`;
@@ -798,21 +948,18 @@ const StudyStore = (function () {
     photos.push(photo);
   }
 
-  function effectiveFlip(photo) {
-    return photo.flipOverride === null ? globalFlip : photo.flipOverride;
+  function removePhoto(photo) {
+    photo.el.remove();
+    const idx = photos.indexOf(photo);
+    if (idx !== -1) photos.splice(idx, 1);
+    if (activeMessagePhoto === photo) {
+      activeMessagePhoto = null;
+      messageBox.classList.add("hidden");
+    }
   }
 
   function applyFlipTransform(photo) {
     photo.el.style.transform = photo.flipped ? "scaleX(-1)" : "scaleX(1)";
-  }
-
-  function showFlipIndicator(photo, text) {
-    clearTimeout(flipIndicatorTimeout);
-    flipIndicator.textContent = text;
-    flipIndicator.style.left = `${photo.x + photo.width / 2}px`;
-    flipIndicator.style.top = `${photo.y - 10}px`;
-    flipIndicator.classList.remove("hidden");
-    flipIndicatorTimeout = setTimeout(() => flipIndicator.classList.add("hidden"), 1200);
   }
 
   function attachInteraction(photo) {
@@ -823,6 +970,7 @@ const StudyStore = (function () {
     let dragOffsetY = 0;
 
     img.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       e.preventDefault();
       img.setPointerCapture(e.pointerId);
       photo.dragging = true;
@@ -857,10 +1005,9 @@ const StudyStore = (function () {
       photo.dragging = false;
       img.classList.remove("dragging");
       if (!moved) {
-        clearTimeout(photo.clickTimer);
-        photo.clickTimer = setTimeout(() => showMessageForPhoto(photo), 220);
+        showMessageForPhoto(photo);
       } else {
-        const { vx, vy } = randomVelocity(currentSpeed);
+        const { vx, vy } = randomVelocity(effectiveSpeed(photo));
         photo.vx = vx;
         photo.vy = vy;
       }
@@ -869,19 +1016,9 @@ const StudyStore = (function () {
     img.addEventListener("pointerup", endDrag);
     img.addEventListener("pointercancel", endDrag);
 
-    img.addEventListener("dblclick", (e) => {
+    img.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      clearTimeout(photo.clickTimer);
-      if (photo.flipOverride === null) {
-        photo.flipOverride = true;
-        showFlipIndicator(photo, "이 사진: 반전 항상 켜짐");
-      } else if (photo.flipOverride === true) {
-        photo.flipOverride = false;
-        showFlipIndicator(photo, "이 사진: 반전 항상 꺼짐");
-      } else {
-        photo.flipOverride = null;
-        showFlipIndicator(photo, "이 사진: 기본 설정 따름");
-      }
+      openContextMenu(photo, e.clientX, e.clientY);
     });
   }
 
@@ -906,6 +1043,114 @@ const StudyStore = (function () {
     }, 2600);
   }
 
+  /* ---------- 사진 우클릭 메뉴 ---------- */
+  function openContextMenu(photo, clientX, clientY) {
+    contextPhoto = photo;
+    ctxSpeed.value = effectiveSpeed(photo);
+    ctxFlip.value = photo.flipOverride === null ? "inherit" : photo.flipOverride ? "on" : "off";
+    ctxTurbulence.value = effectiveTurbulence(photo);
+    ctxCollide.checked = photo.collide;
+
+    ctxMenu.classList.remove("hidden");
+    const menuRect = ctxMenu.getBoundingClientRect();
+    const maxLeft = window.innerWidth - menuRect.width - 8;
+    const maxTop = window.innerHeight - menuRect.height - 8;
+    ctxMenu.style.left = `${Math.min(clientX, maxLeft)}px`;
+    ctxMenu.style.top = `${Math.min(clientY, maxTop)}px`;
+  }
+
+  function closeContextMenu() {
+    ctxMenu.classList.add("hidden");
+    contextPhoto = null;
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!ctxMenu.classList.contains("hidden") && !ctxMenu.contains(e.target)) closeContextMenu();
+  });
+  document.addEventListener("contextmenu", (e) => {
+    if (!e.target.classList.contains("wander-photo")) closeContextMenu();
+  });
+
+  ctxSpeed.addEventListener("input", () => {
+    if (!contextPhoto) return;
+    const val = Number(ctxSpeed.value);
+    contextPhoto.speedOverride = val;
+    const angle = Math.atan2(contextPhoto.vy, contextPhoto.vx);
+    contextPhoto.vx = Math.cos(angle) * val;
+    contextPhoto.vy = Math.sin(angle) * val;
+  });
+  ctxFlip.addEventListener("change", () => {
+    if (!contextPhoto) return;
+    contextPhoto.flipOverride = ctxFlip.value === "inherit" ? null : ctxFlip.value === "on";
+  });
+  ctxTurbulence.addEventListener("input", () => {
+    if (!contextPhoto) return;
+    contextPhoto.turbulenceOverride = Number(ctxTurbulence.value);
+  });
+  ctxCollide.addEventListener("change", () => {
+    if (!contextPhoto) return;
+    contextPhoto.collide = ctxCollide.checked;
+  });
+  ctxReset.addEventListener("click", () => {
+    if (!contextPhoto) return;
+    contextPhoto.speedOverride = null;
+    contextPhoto.turbulenceOverride = null;
+    contextPhoto.flipOverride = null;
+    contextPhoto.collide = false;
+    const angle = Math.atan2(contextPhoto.vy, contextPhoto.vx);
+    contextPhoto.vx = Math.cos(angle) * currentSpeed;
+    contextPhoto.vy = Math.sin(angle) * currentSpeed;
+    closeContextMenu();
+  });
+  ctxDelete.addEventListener("click", () => {
+    if (!contextPhoto) return;
+    removePhoto(contextPhoto);
+    closeContextMenu();
+  });
+
+  /* ---------- 애니메이션 루프 ---------- */
+  function resolveCollisions() {
+    for (let i = 0; i < photos.length; i++) {
+      const a = photos[i];
+      if (a.dragging || !a.collide) continue;
+      for (let j = i + 1; j < photos.length; j++) {
+        const b = photos[j];
+        if (b.dragging || !b.collide) continue;
+
+        const acx = a.x + a.width / 2;
+        const acy = a.y + a.height / 2;
+        const bcx = b.x + b.width / 2;
+        const bcy = b.y + b.height / 2;
+        const dx = bcx - acx;
+        const dy = bcy - acy;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const minDist = ((Math.min(a.width, a.height) + Math.min(b.width, b.height)) / 2) * 0.85;
+
+        if (dist < minDist) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = minDist - dist;
+          a.x -= (nx * overlap) / 2;
+          a.y -= (ny * overlap) / 2;
+          b.x += (nx * overlap) / 2;
+          b.y += (ny * overlap) / 2;
+
+          const avn = a.vx * nx + a.vy * ny;
+          const bvn = b.vx * nx + b.vy * ny;
+          a.vx += (bvn - avn) * nx;
+          a.vy += (bvn - avn) * ny;
+          b.vx += (avn - bvn) * nx;
+          b.vy += (avn - bvn) * ny;
+
+          a.el.style.left = `${a.x}px`;
+          a.el.style.top = `${a.y}px`;
+          b.el.style.left = `${b.x}px`;
+          b.el.style.top = `${b.y}px`;
+        }
+      }
+    }
+  }
+
   function step(time) {
     if (lastTime === null) lastTime = time;
     const dt = Math.min((time - lastTime) / 1000, 0.1);
@@ -916,13 +1161,15 @@ const StudyStore = (function () {
     photos.forEach((photo) => {
       if (photo.dragging) return;
 
-      if (turbulent && currentSpeed > 0) {
-        const jitter = currentSpeed * 1.6 * dt * 3;
+      const speed = effectiveSpeed(photo);
+      const intensity = effectiveTurbulence(photo);
+      if (intensity > 0 && speed > 0) {
+        const jitter = speed * (intensity / 100) * 1.6 * dt * 3;
         photo.vx += (Math.random() - 0.5) * jitter;
         photo.vy += (Math.random() - 0.5) * jitter;
         const mag = Math.hypot(photo.vx, photo.vy) || 1;
-        photo.vx = (photo.vx / mag) * currentSpeed;
-        photo.vy = (photo.vy / mag) * currentSpeed;
+        photo.vx = (photo.vx / mag) * speed;
+        photo.vy = (photo.vy / mag) * speed;
       }
 
       const maxX = Math.max(bounds.width - photo.width, 0);
@@ -960,6 +1207,8 @@ const StudyStore = (function () {
       if (photo === activeMessagePhoto) positionBubble(photo);
     });
 
+    resolveCollisions();
+
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -967,6 +1216,7 @@ const StudyStore = (function () {
   speedSlider.addEventListener("input", () => {
     currentSpeed = Number(speedSlider.value);
     photos.forEach((photo) => {
+      if (photo.speedOverride !== null) return;
       const angle = Math.atan2(photo.vy, photo.vx);
       photo.vx = Math.cos(angle) * currentSpeed;
       photo.vy = Math.sin(angle) * currentSpeed;

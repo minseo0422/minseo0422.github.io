@@ -99,13 +99,34 @@ body {
 .photo-message.hidden {
   display: none;
 }
-.flip-indicator {
-  background: #333;
-  color: #fff;
-  font-size: 0.78rem;
+
+/* ============ 사진 우클릭 메뉴 ============ */
+.photo-context-menu {
+  position: fixed;
+  z-index: 200;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+  padding: 12px;
+  width: 220px;
 }
-.flip-indicator::after {
-  border-top-color: #333;
+.photo-context-menu.hidden {
+  display: none;
+}
+.photo-context-menu .popover-row {
+  flex-wrap: wrap;
+}
+.photo-context-menu select {
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+.pcm-actions {
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
 }
 
 /* ============ 아래쪽: 도구 패널 ============ */
@@ -138,6 +159,50 @@ body {
 }
 .settings-gear-btn:hover {
   background: #d5d5d5;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: #f7f7f7;
+  border: 2px solid #4a3323;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+.upload-btn:hover {
+  background: #eee;
+  transform: translateY(-1px);
+}
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.upload-btn.border-black {
+  border-color: #000;
+}
+
+.panel-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.side-btn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
 }
 
 .study-panel {
@@ -273,14 +338,8 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: #222;
-  margin: 10px 0 2px;
+  margin: 10px 0 18px;
   letter-spacing: 1px;
-}
-
-.reset-note {
-  color: #aaa;
-  font-size: 0.78rem;
-  margin: 0 0 14px;
 }
 
 .stopwatch-controls {
@@ -319,13 +378,6 @@ body {
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
-}
-
-.toolbox-buttons {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 /* ============ 버튼 공통 ============ */
@@ -373,6 +425,11 @@ body {
 .btn-gray {
   background: #e2e2e2;
   color: #444;
+}
+
+.btn-purple {
+  background: #8b5cf6;
+  color: #fff;
 }
 
 /* ============ 모달 공통 ============ */
@@ -450,8 +507,24 @@ body {
   font-size: 0.78rem;
   color: #999;
 }
-#speed-slider, #size-slider {
+#speed-slider, #size-slider, #music-volume {
   width: 100%;
+}
+.settings-row-inline {
+  align-items: center;
+  margin-top: 8px;
+}
+.settings-hint-inline {
+  font-size: 0.82rem;
+  color: #777;
+  white-space: nowrap;
+}
+.bg-size-input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.85rem;
 }
 
 /* ============ 기록 모달 ============ */
@@ -729,12 +802,12 @@ body {
   .form-row {
     flex-direction: column;
   }
-  .toolbox-buttons {
-    flex-direction: column;
+  .side-btn-stack {
+    flex-direction: row;
     width: 100%;
   }
-  .toolbox-buttons .btn {
-    width: 100%;
+  .side-btn-stack .btn {
+    flex: 1;
   }
   .side-panel.open, .side-panel-inner {
     width: 100vw;

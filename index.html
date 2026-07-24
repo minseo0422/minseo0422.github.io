@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>나만의 공부방 타이머</title>
+<title>ADHD를 위한 야르렁한 타이머</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,78 +16,79 @@
         <div class="room-bg" id="room-bg"></div>
         <div id="wander-layer"></div>
         <div id="photo-message" class="photo-message hidden"></div>
-        <div id="flip-indicator" class="photo-message flip-indicator hidden"></div>
       </section>
 
-      <!-- ===== 아래쪽 : 순공시간 / 뽀모도로 / 체크리스트 ===== -->
+      <!-- ===== 아래쪽 : 순공시간 / 뽀모도로 / 체크리스트 / 습관 ===== -->
       <section id="toolbox">
         <button id="open-settings" class="settings-gear-btn" title="설정">⚙️</button>
 
-        <div class="study-panel">
-          <div class="page-tabs">
-            <button class="tab-btn active" data-page="0">⏱ 순공시간</button>
-            <button class="tab-btn" data-page="1">🍅 뽀모도로</button>
-          </div>
+        <div class="panel-row">
+          <div class="study-panel">
+            <div class="page-tabs">
+              <button class="tab-btn active" data-page="0">⏱ 순공시간</button>
+              <button class="tab-btn" data-page="1">🍅 뽀모도로</button>
+            </div>
 
-          <div class="pages-viewport">
-            <div class="pages-track" id="pages-track">
+            <div class="pages-viewport">
+              <div class="pages-track" id="pages-track">
 
-              <div class="page page-stopwatch">
-                <div class="study-header">
-                  <div class="header-side header-left">
-                    <button id="open-calendar" class="icon-btn" title="달력">📅</button>
-                    <button id="open-history" class="icon-btn" title="기록 보기">🗂</button>
+                <div class="page page-stopwatch">
+                  <div class="study-header">
+                    <div class="header-side header-left">
+                      <button id="open-calendar" class="icon-btn" title="달력">📅</button>
+                      <button id="open-history" class="icon-btn" title="기록 보기">🗂</button>
+                    </div>
+                    <h2>순공시간</h2>
+                    <div class="header-side header-right">
+                      <button id="open-time-edit" class="icon-btn icon-btn-edit" title="시간 수정">✎︎</button>
+                    </div>
+
+                    <div id="time-edit-popover" class="popover hidden">
+                      <div class="popover-row">
+                        <span>1시간</span>
+                        <button class="btn btn-gray btn-sm" data-delta="-3600000">－</button>
+                        <button class="btn btn-blue btn-sm" data-delta="3600000">＋</button>
+                      </div>
+                      <div class="popover-row">
+                        <span>10분</span>
+                        <button class="btn btn-gray btn-sm" data-delta="-600000">－</button>
+                        <button class="btn btn-blue btn-sm" data-delta="600000">＋</button>
+                      </div>
+                      <div class="popover-row">
+                        <span>1분</span>
+                        <button class="btn btn-gray btn-sm" data-delta="-60000">－</button>
+                        <button class="btn btn-blue btn-sm" data-delta="60000">＋</button>
+                      </div>
+                    </div>
                   </div>
-                  <h2>순공시간</h2>
-                  <div class="header-side header-right">
-                    <button id="open-time-edit" class="icon-btn icon-btn-edit" title="시간 수정">✎︎</button>
-                  </div>
 
-                  <div id="time-edit-popover" class="popover hidden">
-                    <div class="popover-row">
-                      <span>1시간</span>
-                      <button class="btn btn-gray btn-sm" data-delta="-3600000">－</button>
-                      <button class="btn btn-blue btn-sm" data-delta="3600000">＋</button>
-                    </div>
-                    <div class="popover-row">
-                      <span>10분</span>
-                      <button class="btn btn-gray btn-sm" data-delta="-600000">－</button>
-                      <button class="btn btn-blue btn-sm" data-delta="600000">＋</button>
-                    </div>
-                    <div class="popover-row">
-                      <span>1분</span>
-                      <button class="btn btn-gray btn-sm" data-delta="-60000">－</button>
-                      <button class="btn btn-blue btn-sm" data-delta="60000">＋</button>
-                    </div>
+                  <div id="stopwatch-display" class="stopwatch-display">00:00:00</div>
+                  <div class="stopwatch-controls">
+                    <button id="stopwatch-toggle" class="btn btn-blue btn-lg">시작</button>
                   </div>
                 </div>
 
-                <div id="stopwatch-display" class="stopwatch-display">00:00:00</div>
-                <p class="reset-note">매일 새벽 5시에 자동으로 초기화돼요.</p>
-                <div class="stopwatch-controls">
-                  <button id="stopwatch-toggle" class="btn btn-blue btn-lg">시작</button>
+                <div class="page page-pomodoro">
+                  <h2>🍅 뽀모도로 타이머</h2>
+                  <p class="pomodoro-desc">50분 집중 · 10분 휴식을 반복합니다</p>
+                  <div id="pomodoro-phase" class="pomodoro-phase">집중 시간</div>
+                  <div id="pomodoro-display" class="pomodoro-display">50:00</div>
+                  <div id="pomodoro-cycle" class="pomodoro-cycle">진행 횟수: 0회</div>
+                  <div class="pomodoro-controls">
+                    <button id="pomodoro-toggle" class="btn btn-yellow btn-lg">시작</button>
+                    <button id="pomodoro-skip" class="btn btn-gray btn-lg">다음 단계</button>
+                    <button id="pomodoro-reset" class="btn btn-gray btn-lg">초기화</button>
+                  </div>
                 </div>
+
               </div>
-
-              <div class="page page-pomodoro">
-                <h2>🍅 뽀모도로 타이머</h2>
-                <p class="pomodoro-desc">50분 집중 · 10분 휴식을 반복합니다</p>
-                <div id="pomodoro-phase" class="pomodoro-phase">집중 시간</div>
-                <div id="pomodoro-display" class="pomodoro-display">50:00</div>
-                <div id="pomodoro-cycle" class="pomodoro-cycle">진행 횟수: 0회</div>
-                <div class="pomodoro-controls">
-                  <button id="pomodoro-toggle" class="btn btn-yellow btn-lg">시작</button>
-                  <button id="pomodoro-skip" class="btn btn-gray btn-lg">다음 단계</button>
-                  <button id="pomodoro-reset" class="btn btn-gray btn-lg">초기화</button>
-                </div>
-              </div>
-
             </div>
           </div>
-        </div>
 
-        <div class="toolbox-buttons">
-          <button id="open-checklist" class="btn btn-green">✅ 체크리스트</button>
+          <div class="side-btn-stack">
+            <button id="open-checklist" class="btn btn-green">✅ 체크리스트</button>
+            <button id="open-habits" class="btn btn-purple">🔁 습관 만들기</button>
+          </div>
         </div>
 
       </section>
@@ -167,16 +168,21 @@
 
       <div class="settings-section">
         <div class="settings-label">사진</div>
-        <label for="photo-upload" class="upload-btn">📷 사진 업로드</label>
+        <label for="photo-upload" class="upload-btn border-black">📷 사진 업로드</label>
         <input type="file" id="photo-upload" accept="image/*" multiple hidden>
       </div>
 
       <div class="settings-section">
         <div class="settings-label">배경</div>
         <div class="settings-row">
-          <label for="bg-upload" class="upload-btn">🖼 배경 업로드</label>
+          <label for="bg-upload" class="upload-btn border-black">🖼 배경 업로드</label>
           <input type="file" id="bg-upload" accept="image/*" hidden>
           <button id="bg-reset-btn" class="upload-btn">배경 초기화 (회색)</button>
+        </div>
+        <div class="settings-row settings-row-inline">
+          <label for="bg-size-input" class="settings-hint-inline">배경 크기</label>
+          <input type="number" id="bg-size-input" class="bg-size-input" min="10" placeholder="px">
+          <span class="settings-hint-inline">px (비우면 화면 꽉 채움)</span>
         </div>
       </div>
 
@@ -196,7 +202,21 @@
 
       <div class="settings-section settings-toggle-row">
         <label><input type="checkbox" id="flip-toggle" checked> 벽에 부딪히면 사진 좌우 반전</label>
-        <p class="settings-hint">사진을 더블클릭하면 그 사진만 반전 여부를 따로 설정할 수 있어요.</p>
+        <p class="settings-hint">사진을 우클릭하면 그 사진만 이동속도·반전·격렬함·충돌 여부를 따로 설정하거나 삭제할 수 있어요.</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">배경음악</div>
+        <div class="settings-row">
+          <label for="music-upload" class="upload-btn">🎵 노래 업로드</label>
+          <input type="file" id="music-upload" accept="audio/*" hidden>
+          <button id="music-toggle" class="upload-btn" disabled>▶ 재생</button>
+        </div>
+        <div class="settings-row settings-row-inline">
+          <span class="settings-hint-inline">음량</span>
+          <input type="range" id="music-volume" min="0" max="100" value="60">
+        </div>
+        <p id="music-filename" class="settings-hint"></p>
       </div>
 
       <div class="settings-section">
@@ -254,6 +274,61 @@
       </div>
     </div>
   </div>
+
+  <!-- ===== 습관 만들기 모달 (매일 새벽 5시 완료여부 초기화) ===== -->
+  <div id="habit-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <button class="modal-close" data-close="habit-modal">✕</button>
+      <h2>🔁 습관 만들기</h2>
+      <p class="pomodoro-desc">완료 체크는 매일 새벽 5시에 자동으로 초기화돼요.</p>
+
+      <form id="habit-form" class="todo-form">
+        <div class="form-row">
+          <label>습관 이름
+            <input type="text" id="habit-name" placeholder="예: 물 8잔 마시기" required>
+          </label>
+        </div>
+        <button type="submit" class="btn btn-purple todo-add-btn">+ 습관 추가</button>
+      </form>
+
+      <div class="todo-list-wrap">
+        <table class="todo-table">
+          <thead><tr><th>완료</th><th>습관</th><th></th></tr></thead>
+          <tbody id="habit-list"></tbody>
+        </table>
+        <p id="habit-empty" class="todo-empty">등록된 습관이 없습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 사진 우클릭 메뉴 ===== -->
+  <div id="photo-context-menu" class="photo-context-menu hidden">
+    <div class="popover-row">
+      <span>이동속도</span>
+      <input type="range" id="pcm-speed" min="0" max="200">
+    </div>
+    <div class="popover-row">
+      <span>좌우반전(벽 충돌시)</span>
+      <select id="pcm-flip">
+        <option value="inherit">기본값</option>
+        <option value="on">항상 켜짐</option>
+        <option value="off">항상 꺼짐</option>
+      </select>
+    </div>
+    <div class="popover-row">
+      <span>움직임 격렬함</span>
+      <input type="range" id="pcm-turbulence" min="0" max="100">
+    </div>
+    <div class="popover-row">
+      <label><input type="checkbox" id="pcm-collide"> 다른 사진과 부딪히기</label>
+    </div>
+    <div class="popover-row pcm-actions">
+      <button id="pcm-reset" class="btn btn-gray btn-sm">기본값으로</button>
+      <button id="pcm-delete" class="btn btn-gray btn-sm">🗑 삭제</button>
+    </div>
+  </div>
+
+  <audio id="bg-audio" loop></audio>
 
   <script src="script.js"></script>
 </body>
