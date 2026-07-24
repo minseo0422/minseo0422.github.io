@@ -957,6 +957,31 @@ const SettingsStore = (function () {
   const ctxDelete = document.getElementById("pcm-delete");
 
   const savedSettings = SettingsStore.load();
+  const PHOTOS_KEY = "study-room-photos";
+
+  function loadStoredPhotos() {
+    try {
+      return JSON.parse(localStorage.getItem(PHOTOS_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function persistPhotos() {
+    try {
+      const data = photos.map((p) => ({
+        src: p.el.src,
+        aspect: p.aspect,
+        flipEnabled: p.flipEnabled,
+        speedOverride: p.speedOverride,
+        sizeOverride: p.sizeOverride,
+        turbulenceOverride: p.turbulenceOverride,
+        collide: p.collide,
+      }));
+      localStorage.setItem(PHOTOS_KEY, JSON.stringify(data));
+    } catch (e) {
+      /* localStorage 용량 초과 시 사진 저장은 건너뜀 */
+    }
+  }
 
   const photos = []; // { el, x, y, vx, vy, width, height, aspect, dragging, flipEnabled, flipped, speedOverride, sizeOverride, turbulenceOverride, collide, clickTimer }
   let currentSpeed = savedSettings.speed ?? Number(speedSlider.value);
@@ -1017,7 +1042,7 @@ const SettingsStore = (function () {
     probe.src = src;
   }
 
-  function createPhotoElement(src, w, h, aspect) {
+  function createPhotoElement(src, w, h, aspect, restoreData) {
     const img = document.createElement("img");
     img.src = src;
     img.className = "wander-photo";
@@ -1030,7 +1055,8 @@ const SettingsStore = (function () {
     const bounds = room.getBoundingClientRect();
     const x = Math.random() * Math.max(bounds.width - w, 0);
     const y = Math.random() * Math.max(bounds.height - h, 0);
-    const { vx, vy } = randomVelocity(currentSpeed);
+    const initSpeed = restoreData?.speedOverride ?? currentSpeed;
+    const { vx, vy } = randomVelocity(initSpeed);
 
     const photo = {
       el: img,
@@ -1042,12 +1068,12 @@ const SettingsStore = (function () {
       height: h,
       aspect,
       dragging: false,
-      flipEnabled: false,
+      flipEnabled: restoreData?.flipEnabled ?? false,
       flipped: false,
-      speedOverride: null,
-      sizeOverride: null,
-      turbulenceOverride: null,
-      collide: false,
+      speedOverride: restoreData?.speedOverride ?? null,
+      sizeOverride: restoreData?.sizeOverride ?? null,
+      turbulenceOverride: restoreData?.turbulenceOverride ?? null,
+      collide: restoreData?.collide ?? false,
       clickTimer: null,
     };
     img.style.left = `${x}px`;
@@ -1055,12 +1081,20 @@ const SettingsStore = (function () {
 
     attachInteraction(photo);
     photos.push(photo);
+    persistPhotos();
+  }
+
+  function restorePhoto(data) {
+    const maxDim = data.sizeOverride ?? currentMaxDim;
+    const { w, h } = computeSize(data.aspect, maxDim);
+    createPhotoElement(data.src, w, h, data.aspect, data);
   }
 
   function removePhoto(photo) {
     photo.el.remove();
     const idx = photos.indexOf(photo);
     if (idx !== -1) photos.splice(idx, 1);
+    persistPhotos();
     if (activeMessagePhoto === photo) {
       activeMessagePhoto = null;
       messageBox.classList.add("hidden");
@@ -1189,23 +1223,31 @@ const SettingsStore = (function () {
     contextPhoto.vx = Math.cos(angle) * val;
     contextPhoto.vy = Math.sin(angle) * val;
   });
+  ctxSpeed.addEventListener("change", persistPhotos);
+
   ctxSize.addEventListener("input", () => {
     if (!contextPhoto) return;
     const val = Number(ctxSize.value);
     contextPhoto.sizeOverride = val;
     resizePhoto(contextPhoto, val);
   });
+  ctxSize.addEventListener("change", persistPhotos);
+
   ctxFlip.addEventListener("change", () => {
     if (!contextPhoto) return;
     contextPhoto.flipEnabled = ctxFlip.checked;
+    persistPhotos();
   });
   ctxTurbulence.addEventListener("input", () => {
     if (!contextPhoto) return;
     contextPhoto.turbulenceOverride = Number(ctxTurbulence.value);
   });
+  ctxTurbulence.addEventListener("change", persistPhotos);
+
   ctxCollide.addEventListener("change", () => {
     if (!contextPhoto) return;
     contextPhoto.collide = ctxCollide.checked;
+    persistPhotos();
   });
   ctxReset.addEventListener("click", () => {
     if (!contextPhoto) return;
@@ -1218,6 +1260,7 @@ const SettingsStore = (function () {
     contextPhoto.vx = Math.cos(angle) * currentSpeed;
     contextPhoto.vy = Math.sin(angle) * currentSpeed;
     resizePhoto(contextPhoto, currentMaxDim);
+    persistPhotos();
     closeContextMenu();
   });
   ctxDelete.addEventListener("click", () => {
@@ -1366,4 +1409,6 @@ const SettingsStore = (function () {
     });
     fileInput.value = "";
   });
+
+  loadStoredPhotos().forEach(restorePhoto);
 })();
