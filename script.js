@@ -149,6 +149,7 @@ const MessageStore = (function () {
   }
 
   openBtn.addEventListener("click", () => {
+    closeModal("settings-modal");
     renderAll();
     openModal("message-modal");
   });
@@ -165,7 +166,57 @@ const MessageStore = (function () {
 })();
 
 /* =========================================================
-   1. 순공시간 (스톱워치, 초기화 없음 + 기록 + 수동 시간 조정)
+   1. 순공시간 / 뽀모도로 페이지 전환 탭
+========================================================= */
+(function pageTabs() {
+  const tabs = document.querySelectorAll(".tab-btn");
+  const track = document.getElementById("pages-track");
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      track.classList.toggle("show-1", tab.dataset.page === "1");
+    });
+  });
+})();
+
+/* =========================================================
+   2. 순공시간 저장소 (날짜별 누적, 새벽 5시 기준)
+========================================================= */
+const StudyStore = (function () {
+  const DAILY_KEY = "study-room-daily";
+  const DAY_START_HOUR = 5;
+
+  function getStudyDayKey(ts) {
+    const d = new Date(ts);
+    if (d.getHours() < DAY_START_HOUR) d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function loadDaily() {
+    try {
+      return JSON.parse(localStorage.getItem(DAILY_KEY)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveDaily(map) {
+    localStorage.setItem(DAILY_KEY, JSON.stringify(map));
+  }
+
+  function addToDaily(key, ms) {
+    const map = loadDaily();
+    map[key] = Math.max((map[key] || 0) + ms, 0);
+    saveDaily(map);
+  }
+
+  return { getStudyDayKey, loadDaily, saveDaily, addToDaily, DAY_START_HOUR };
+})();
+
+/* =========================================================
+   3. 순공시간 (스톱워치, 새벽 5시 자동 초기화 + 기록 + 수동 시간 조정)
 ========================================================= */
 (function studyTimer() {
   const HISTORY_KEY = "study-room-history";
@@ -175,15 +226,8 @@ const MessageStore = (function () {
   const historyBtn = document.getElementById("open-history");
   const historyList = document.getElementById("history-list");
   const historyEmpty = document.getElementById("history-empty");
-  const historyClearBtn = document.getElementById("history-clear-btn");
   const editBtn = document.getElementById("open-time-edit");
   const editPopover = document.getElementById("time-edit-popover");
-
-  let running = false;
-  let startTime = 0;
-  let sessionStart = 0;
-  let elapsed = 0;
-  let timerId = null;
 
   function loadHistory() {
     try {
@@ -195,34 +239,73 @@ const MessageStore = (function () {
   function saveHistory(list) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
   }
+  function pushHistory(entry) {
+    const history = loadHistory();
+    history.push(entry);
+    saveHistory(history);
+  }
+  function purgeOldHistory() {
+    const cutoff = Date.now() - 24 * 3600 * 1000;
+    const history = loadHistory();
+    const fresh = history.filter((entry) => entry.createdAt >= cutoff);
+    if (fresh.length !== history.length) saveHistory(fresh);
+    return fresh;
+  }
+
+  let running = false;
+  let startTime = 0;
+  let currentDayKey = StudyStore.getStudyDayKey(Date.now());
+  let timerId = null;
+
+  function currentTotal() {
+    const base = StudyStore.loadDaily()[currentDayKey] || 0;
+    return base + (running ? Date.now() - startTime : 0);
+  }
 
   function render() {
-    const total = Math.max(elapsed + (running ? Date.now() - startTime : 0), 0);
-    display.textContent = formatDuration(total);
+    const nowKey = StudyStore.getStudyDayKey(Date.now());
+    if (nowKey !== currentDayKey && running) {
+      const now = Date.now();
+      const segMs = now - startTime;
+      StudyStore.addToDaily(currentDayKey, segMs);
+      pushHistory({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        start: formatDateTime(startTime),
+        end: formatDateTime(now),
+        durationMs: segMs,
+        createdAt: now,
+      });
+      startTime = now;
+      currentDayKey = nowKey;
+    } else if (nowKey !== currentDayKey) {
+      currentDayKey = nowKey;
+    }
+    display.textContent = formatDuration(currentTotal());
   }
 
   toggleBtn.addEventListener("click", () => {
     running = !running;
     if (running) {
       startTime = Date.now();
-      sessionStart = startTime;
+      currentDayKey = StudyStore.getStudyDayKey(startTime);
       timerId = setInterval(render, 250);
       toggleBtn.textContent = "정지";
       toggleBtn.classList.add("active");
     } else {
       const now = Date.now();
-      elapsed += now - startTime;
+      const segMs = now - startTime;
+      StudyStore.addToDaily(currentDayKey, segMs);
       clearInterval(timerId);
       toggleBtn.textContent = "시작";
       toggleBtn.classList.remove("active");
 
-      const history = loadHistory();
-      history.push({
-        start: formatDateTime(sessionStart),
+      pushHistory({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        start: formatDateTime(startTime),
         end: formatDateTime(now),
-        durationMs: now - sessionStart,
+        durationMs: segMs,
+        createdAt: now,
       });
-      saveHistory(history);
     }
     render();
   });
@@ -239,44 +322,146 @@ const MessageStore = (function () {
   editPopover.querySelectorAll("[data-delta]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const delta = Number(btn.dataset.delta);
-      elapsed = Math.max(elapsed + delta, 0);
+      StudyStore.addToDaily(currentDayKey, delta);
       render();
     });
   });
 
   function renderHistory() {
-    const history = loadHistory();
+    const history = purgeOldHistory().slice().reverse();
     historyList.innerHTML = "";
     historyEmpty.classList.toggle("hidden", history.length > 0);
-    history
-      .slice()
-      .reverse()
-      .forEach((entry) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(entry.start)}</td>
-          <td>${escapeHtml(entry.end)}</td>
-          <td>${formatDuration(entry.durationMs)}</td>
-        `;
-        historyList.appendChild(tr);
-      });
+    history.forEach((entry) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(entry.start)}</td>
+        <td>${escapeHtml(entry.end)}</td>
+        <td>${formatDuration(entry.durationMs)}</td>
+        <td><button class="history-delete-btn" data-id="${entry.id}" title="삭제">🗑</button></td>
+      `;
+      historyList.appendChild(tr);
+    });
   }
+
+  historyList.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-id]");
+    if (!btn) return;
+    const remaining = loadHistory().filter((h) => h.id !== btn.dataset.id);
+    saveHistory(remaining);
+    renderHistory();
+  });
 
   historyBtn.addEventListener("click", () => {
     renderHistory();
     openModal("history-modal");
   });
 
-  historyClearBtn.addEventListener("click", () => {
-    saveHistory([]);
-    renderHistory();
-  });
+  setInterval(purgeOldHistory, 60000);
 
   render();
 })();
 
 /* =========================================================
-   2. 뽀모도로 타이머 (50분 집중 / 10분 휴식 반복, 순공시간 아래 항상 표시)
+   4. 달력 (날짜별 순공시간 시각화: 검정 ~ 진한 주황)
+========================================================= */
+(function calendarModule() {
+  const openBtn = document.getElementById("open-calendar");
+  const grid = document.getElementById("calendar-grid");
+  const monthLabel = document.getElementById("cal-month-label");
+  const prevBtn = document.getElementById("cal-prev");
+  const nextBtn = document.getElementById("cal-next");
+  const detail = document.getElementById("calendar-detail");
+
+  const CAP_MINUTES = 360; // 6시간 이상이면 가장 진한 색
+
+  let viewYear = 0;
+  let viewMonth = 0; // 0-indexed
+  let selectedKey = null;
+
+  function colorForMinutes(min) {
+    if (min <= 0) return "#f2f2f2";
+    const ratio = Math.min(min / CAP_MINUTES, 1);
+    const from = { r: 26, g: 26, b: 26 };
+    const to = { r: 179, g: 64, b: 10 };
+    const r = Math.round(from.r + (to.r - from.r) * ratio);
+    const g = Math.round(from.g + (to.g - from.g) * ratio);
+    const b = Math.round(from.b + (to.b - from.b) * ratio);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function dateKey(y, m, d) {
+    return `${y}-${pad(m + 1)}-${pad(d)}`;
+  }
+
+  function showDetail(key, minutes) {
+    detail.textContent = `${key} · 순공시간 ${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
+  }
+
+  function render() {
+    const daily = StudyStore.loadDaily();
+    monthLabel.textContent = `${viewYear}년 ${viewMonth + 1}월`;
+    grid.innerHTML = "";
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement("div");
+      empty.className = "calendar-cell empty";
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = dateKey(viewYear, viewMonth, d);
+      const minutes = Math.floor((daily[key] || 0) / 60000);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "calendar-cell";
+      btn.textContent = d;
+      btn.style.background = colorForMinutes(minutes);
+      btn.style.color = minutes > 0 ? "#fff" : "#333";
+      if (key === selectedKey) btn.classList.add("selected");
+      btn.addEventListener("click", () => {
+        selectedKey = key;
+        showDetail(key, minutes);
+        render();
+      });
+      grid.appendChild(btn);
+    }
+  }
+
+  openBtn.addEventListener("click", () => {
+    const now = new Date();
+    viewYear = now.getFullYear();
+    viewMonth = now.getMonth();
+    selectedKey = StudyStore.getStudyDayKey(Date.now());
+    const minutes = Math.floor((StudyStore.loadDaily()[selectedKey] || 0) / 60000);
+    showDetail(selectedKey, minutes);
+    render();
+    openModal("calendar-modal");
+  });
+
+  prevBtn.addEventListener("click", () => {
+    viewMonth -= 1;
+    if (viewMonth < 0) {
+      viewMonth = 11;
+      viewYear -= 1;
+    }
+    render();
+  });
+
+  nextBtn.addEventListener("click", () => {
+    viewMonth += 1;
+    if (viewMonth > 11) {
+      viewMonth = 0;
+      viewYear += 1;
+    }
+    render();
+  });
+})();
+
+/* =========================================================
+   5. 뽀모도로 타이머 (50분 집중 / 10분 휴식 반복)
 ========================================================= */
 (function pomodoro() {
   const FOCUS_SEC = 50 * 60;
@@ -359,7 +544,7 @@ const MessageStore = (function () {
 })();
 
 /* =========================================================
-   3. 체크리스트 (오른쪽 사이드 패널, localStorage 저장)
+   6. 체크리스트 (오른쪽으로 화면을 밀어내는 사이드 패널, localStorage 저장)
 ========================================================= */
 (function checklist() {
   const STORAGE_KEY = "study-room-todos";
@@ -367,7 +552,6 @@ const MessageStore = (function () {
   const openBtn = document.getElementById("open-checklist");
   const closeBtn = document.getElementById("close-checklist");
   const panel = document.getElementById("checklist-panel");
-  const backdrop = document.getElementById("checklist-backdrop");
   const form = document.getElementById("todo-form");
   const listEl = document.getElementById("todo-list");
   const emptyEl = document.getElementById("todo-empty");
@@ -428,8 +612,12 @@ const MessageStore = (function () {
         <td class="importance-${todo.importance}">${todo.importance}</td>
         <td>${escapeHtml(formatPeriod(todo.start, todo.end))}</td>
         <td>
-          <input type="number" min="1" class="todo-duration-input" data-action="duration" data-id="${todo.id}"
-            value="${todo.duration ?? ""}" placeholder="분" ${todo.done ? "" : "disabled"}>
+          <div class="duration-cell">
+            <input type="number" min="0" class="todo-duration-input no-spin" data-action="duration-h" data-id="${todo.id}"
+              value="${todo.durationHours ?? ""}" placeholder="0" ${todo.done ? "" : "disabled"}>시간
+            <input type="number" min="0" max="59" class="todo-duration-input no-spin" data-action="duration-m" data-id="${todo.id}"
+              value="${todo.durationMinutes ?? ""}" placeholder="0" ${todo.done ? "" : "disabled"}>분
+          </div>
         </td>
         <td><button class="todo-delete-btn" data-action="delete" data-id="${todo.id}" title="삭제">🗑</button></td>
       `;
@@ -446,7 +634,8 @@ const MessageStore = (function () {
       importance: importanceInput.value,
       start: startInput.value,
       end: endInput.value,
-      duration: null,
+      durationHours: null,
+      durationMinutes: null,
       done: false,
     };
     if (!todo.subject || !todo.content) return;
@@ -477,32 +666,25 @@ const MessageStore = (function () {
       todo.done = target.checked;
       saveTodos();
       render();
-    } else if (target.dataset.action === "duration") {
-      todo.duration = target.value ? Number(target.value) : null;
+    } else if (target.dataset.action === "duration-h") {
+      todo.durationHours = target.value ? Number(target.value) : null;
+      saveTodos();
+    } else if (target.dataset.action === "duration-m") {
+      todo.durationMinutes = target.value ? Number(target.value) : null;
       saveTodos();
     }
   });
 
   sortSelect.addEventListener("change", render);
 
-  function openPanel() {
-    panel.classList.add("open");
-    backdrop.classList.remove("hidden");
-  }
-  function closePanel() {
-    panel.classList.remove("open");
-    backdrop.classList.add("hidden");
-  }
-
-  openBtn.addEventListener("click", openPanel);
-  closeBtn.addEventListener("click", closePanel);
-  backdrop.addEventListener("click", closePanel);
+  openBtn.addEventListener("click", () => panel.classList.add("open"));
+  closeBtn.addEventListener("click", () => panel.classList.remove("open"));
 
   render();
 })();
 
 /* =========================================================
-   4. 배경 업로드 (기본: 회색)
+   7. 배경 업로드 (기본: 회색)
 ========================================================= */
 (function roomBackground() {
   const roomBg = document.getElementById("room-bg");
@@ -526,45 +708,61 @@ const MessageStore = (function () {
 })();
 
 /* =========================================================
-   5. 방 안을 돌아다니는 업로드 사진 (원본 비율 유지, 속도 조절, 드래그, 말풍선)
+   8. 설정 창 열기
+========================================================= */
+(function settingsModal() {
+  document.getElementById("open-settings").addEventListener("click", () => {
+    openModal("settings-modal");
+  });
+})();
+
+/* =========================================================
+   9. 방 안을 돌아다니는 업로드 사진
+      - 원본 비율 유지 / 속도·크기 조절 / 드래그 / 말풍선(움직임 유지)
+      - 격정적으로 움직이기, 벽 충돌 시 좌우반전(개별 설정 가능)
 ========================================================= */
 (function wanderingPhotos() {
   const room = document.getElementById("room");
   const layer = document.getElementById("wander-layer");
   const fileInput = document.getElementById("photo-upload");
   const messageBox = document.getElementById("photo-message");
+  const flipIndicator = document.getElementById("flip-indicator");
   const speedSlider = document.getElementById("speed-slider");
+  const sizeSlider = document.getElementById("size-slider");
+  const turbulentToggle = document.getElementById("turbulent-toggle");
+  const flipToggle = document.getElementById("flip-toggle");
 
-  const photos = []; // { el, x, y, vx, vy, width, height, dragging, paused }
-  const MAX_DIM = 100;
+  const photos = []; // { el, x, y, vx, vy, width, height, aspect, dragging, flipOverride, flipped, clickTimer }
   let currentSpeed = Number(speedSlider.value);
+  let currentMaxDim = Number(sizeSlider.value);
+  let turbulent = turbulentToggle.checked;
+  let globalFlip = flipToggle.checked;
   let lastTime = null;
   let messageTimeout = null;
   let activeMessagePhoto = null;
+  let flipIndicatorTimeout = null;
 
   function randomVelocity(speed) {
     const angle = Math.random() * Math.PI * 2;
     return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
   }
 
+  function computeSize(aspect, maxDim) {
+    if (aspect >= 1) return { w: maxDim, h: maxDim / aspect };
+    return { w: maxDim * aspect, h: maxDim };
+  }
+
   function addPhoto(src) {
     const probe = new Image();
     probe.onload = () => {
-      let w = probe.naturalWidth || MAX_DIM;
-      let h = probe.naturalHeight || MAX_DIM;
-      if (w >= h) {
-        h = h * (MAX_DIM / w);
-        w = MAX_DIM;
-      } else {
-        w = w * (MAX_DIM / h);
-        h = MAX_DIM;
-      }
-      createPhotoElement(src, w, h);
+      const aspect = (probe.naturalWidth || 1) / (probe.naturalHeight || 1);
+      const { w, h } = computeSize(aspect, currentMaxDim);
+      createPhotoElement(src, w, h, aspect);
     };
     probe.src = src;
   }
 
-  function createPhotoElement(src, w, h) {
+  function createPhotoElement(src, w, h, aspect) {
     const img = document.createElement("img");
     img.src = src;
     img.className = "wander-photo";
@@ -579,12 +777,42 @@ const MessageStore = (function () {
     const y = Math.random() * Math.max(bounds.height - h, 0);
     const { vx, vy } = randomVelocity(currentSpeed);
 
-    const photo = { el: img, x, y, vx, vy, width: w, height: h, dragging: false, paused: false };
+    const photo = {
+      el: img,
+      x,
+      y,
+      vx,
+      vy,
+      width: w,
+      height: h,
+      aspect,
+      dragging: false,
+      flipOverride: null, // null: 기본 설정 따름, true: 항상 반전, false: 항상 유지
+      flipped: false,
+      clickTimer: null,
+    };
     img.style.left = `${x}px`;
     img.style.top = `${y}px`;
 
     attachInteraction(photo);
     photos.push(photo);
+  }
+
+  function effectiveFlip(photo) {
+    return photo.flipOverride === null ? globalFlip : photo.flipOverride;
+  }
+
+  function applyFlipTransform(photo) {
+    photo.el.style.transform = photo.flipped ? "scaleX(-1)" : "scaleX(1)";
+  }
+
+  function showFlipIndicator(photo, text) {
+    clearTimeout(flipIndicatorTimeout);
+    flipIndicator.textContent = text;
+    flipIndicator.style.left = `${photo.x + photo.width / 2}px`;
+    flipIndicator.style.top = `${photo.y - 10}px`;
+    flipIndicator.classList.remove("hidden");
+    flipIndicatorTimeout = setTimeout(() => flipIndicator.classList.add("hidden"), 1200);
   }
 
   function attachInteraction(photo) {
@@ -598,7 +826,6 @@ const MessageStore = (function () {
       e.preventDefault();
       img.setPointerCapture(e.pointerId);
       photo.dragging = true;
-      photo.paused = false;
       moved = false;
       img.classList.add("dragging");
       const rect = room.getBoundingClientRect();
@@ -625,12 +852,13 @@ const MessageStore = (function () {
       img.style.top = `${ny}px`;
     });
 
-    function endDrag(e) {
+    function endDrag() {
       if (!photo.dragging) return;
       photo.dragging = false;
       img.classList.remove("dragging");
       if (!moved) {
-        showMessageForPhoto(photo);
+        clearTimeout(photo.clickTimer);
+        photo.clickTimer = setTimeout(() => showMessageForPhoto(photo), 220);
       } else {
         const { vx, vy } = randomVelocity(currentSpeed);
         photo.vx = vx;
@@ -640,6 +868,21 @@ const MessageStore = (function () {
 
     img.addEventListener("pointerup", endDrag);
     img.addEventListener("pointercancel", endDrag);
+
+    img.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      clearTimeout(photo.clickTimer);
+      if (photo.flipOverride === null) {
+        photo.flipOverride = true;
+        showFlipIndicator(photo, "이 사진: 반전 항상 켜짐");
+      } else if (photo.flipOverride === true) {
+        photo.flipOverride = false;
+        showFlipIndicator(photo, "이 사진: 반전 항상 꺼짐");
+      } else {
+        photo.flipOverride = null;
+        showFlipIndicator(photo, "이 사진: 기본 설정 따름");
+      }
+    });
   }
 
   function positionBubble(photo) {
@@ -648,12 +891,8 @@ const MessageStore = (function () {
   }
 
   function showMessageForPhoto(photo) {
-    if (activeMessagePhoto && activeMessagePhoto !== photo) {
-      activeMessagePhoto.paused = false;
-    }
-    clearTimeout(messageTimeout);
     activeMessagePhoto = photo;
-    photo.paused = true;
+    clearTimeout(messageTimeout);
 
     const messages = MessageStore.getMessages();
     const msg = messages[Math.floor(Math.random() * messages.length)] || "오늘도 화이팅!";
@@ -663,7 +902,6 @@ const MessageStore = (function () {
 
     messageTimeout = setTimeout(() => {
       messageBox.classList.add("hidden");
-      photo.paused = false;
       activeMessagePhoto = null;
     }, 2600);
   }
@@ -676,7 +914,16 @@ const MessageStore = (function () {
     const bounds = room.getBoundingClientRect();
 
     photos.forEach((photo) => {
-      if (photo.dragging || photo.paused) return;
+      if (photo.dragging) return;
+
+      if (turbulent && currentSpeed > 0) {
+        const jitter = currentSpeed * 1.6 * dt * 3;
+        photo.vx += (Math.random() - 0.5) * jitter;
+        photo.vy += (Math.random() - 0.5) * jitter;
+        const mag = Math.hypot(photo.vx, photo.vy) || 1;
+        photo.vx = (photo.vx / mag) * currentSpeed;
+        photo.vy = (photo.vy / mag) * currentSpeed;
+      }
 
       const maxX = Math.max(bounds.width - photo.width, 0);
       const maxY = Math.max(bounds.height - photo.height, 0);
@@ -687,9 +934,17 @@ const MessageStore = (function () {
       if (photo.x <= 0) {
         photo.x = 0;
         photo.vx *= -1;
+        if (effectiveFlip(photo)) {
+          photo.flipped = !photo.flipped;
+          applyFlipTransform(photo);
+        }
       } else if (photo.x >= maxX) {
         photo.x = maxX;
         photo.vx *= -1;
+        if (effectiveFlip(photo)) {
+          photo.flipped = !photo.flipped;
+          applyFlipTransform(photo);
+        }
       }
       if (photo.y <= 0) {
         photo.y = 0;
@@ -716,6 +971,30 @@ const MessageStore = (function () {
       photo.vx = Math.cos(angle) * currentSpeed;
       photo.vy = Math.sin(angle) * currentSpeed;
     });
+  });
+
+  sizeSlider.addEventListener("input", () => {
+    currentMaxDim = Number(sizeSlider.value);
+    const bounds = room.getBoundingClientRect();
+    photos.forEach((photo) => {
+      const { w, h } = computeSize(photo.aspect, currentMaxDim);
+      photo.width = w;
+      photo.height = h;
+      photo.el.style.width = `${w}px`;
+      photo.el.style.height = `${h}px`;
+      photo.x = Math.min(photo.x, Math.max(bounds.width - w, 0));
+      photo.y = Math.min(photo.y, Math.max(bounds.height - h, 0));
+      photo.el.style.left = `${photo.x}px`;
+      photo.el.style.top = `${photo.y}px`;
+    });
+  });
+
+  turbulentToggle.addEventListener("change", () => {
+    turbulent = turbulentToggle.checked;
+  });
+
+  flipToggle.addEventListener("change", () => {
+    globalFlip = flipToggle.checked;
   });
 
   fileInput.addEventListener("change", (e) => {

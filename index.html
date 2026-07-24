@@ -8,99 +8,236 @@
 </head>
 <body>
 
-  <!-- ===== 위쪽 : 방 화면 ===== -->
-  <section id="room">
-    <div class="room-bg" id="room-bg"></div>
+  <div id="app-shell">
+    <div id="app-main">
 
-    <div class="top-controls">
-      <label for="photo-upload" class="upload-btn" title="사진 업로드">📷 사진 업로드</label>
-      <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+      <!-- ===== 위쪽 : 방 화면 ===== -->
+      <section id="room">
+        <div class="room-bg" id="room-bg"></div>
+        <div id="wander-layer"></div>
+        <div id="photo-message" class="photo-message hidden"></div>
+        <div id="flip-indicator" class="photo-message flip-indicator hidden"></div>
+      </section>
 
-      <label for="bg-upload" class="upload-btn" title="배경 업로드">🖼 배경 업로드</label>
-      <input type="file" id="bg-upload" accept="image/*" hidden>
+      <!-- ===== 아래쪽 : 순공시간 / 뽀모도로 / 체크리스트 ===== -->
+      <section id="toolbox">
+        <button id="open-settings" class="settings-gear-btn" title="설정">⚙️</button>
 
-      <button id="bg-reset-btn" class="upload-btn" title="배경을 회색으로 초기화">배경 초기화</button>
+        <div class="study-panel">
+          <div class="page-tabs">
+            <button class="tab-btn active" data-page="0">⏱ 순공시간</button>
+            <button class="tab-btn" data-page="1">🍅 뽀모도로</button>
+          </div>
 
-      <div class="speed-control">
-        <label for="speed-slider">이동 속도</label>
+          <div class="pages-viewport">
+            <div class="pages-track" id="pages-track">
+
+              <div class="page page-stopwatch">
+                <div class="study-header">
+                  <div class="header-side header-left">
+                    <button id="open-calendar" class="icon-btn" title="달력">📅</button>
+                    <button id="open-history" class="icon-btn" title="기록 보기">🗂</button>
+                  </div>
+                  <h2>순공시간</h2>
+                  <div class="header-side header-right">
+                    <button id="open-time-edit" class="icon-btn icon-btn-edit" title="시간 수정">✎︎</button>
+                  </div>
+
+                  <div id="time-edit-popover" class="popover hidden">
+                    <div class="popover-row">
+                      <span>1시간</span>
+                      <button class="btn btn-gray btn-sm" data-delta="-3600000">－</button>
+                      <button class="btn btn-blue btn-sm" data-delta="3600000">＋</button>
+                    </div>
+                    <div class="popover-row">
+                      <span>10분</span>
+                      <button class="btn btn-gray btn-sm" data-delta="-600000">－</button>
+                      <button class="btn btn-blue btn-sm" data-delta="600000">＋</button>
+                    </div>
+                    <div class="popover-row">
+                      <span>1분</span>
+                      <button class="btn btn-gray btn-sm" data-delta="-60000">－</button>
+                      <button class="btn btn-blue btn-sm" data-delta="60000">＋</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="stopwatch-display" class="stopwatch-display">00:00:00</div>
+                <p class="reset-note">매일 새벽 5시에 자동으로 초기화돼요.</p>
+                <div class="stopwatch-controls">
+                  <button id="stopwatch-toggle" class="btn btn-blue btn-lg">시작</button>
+                </div>
+              </div>
+
+              <div class="page page-pomodoro">
+                <h2>🍅 뽀모도로 타이머</h2>
+                <p class="pomodoro-desc">50분 집중 · 10분 휴식을 반복합니다</p>
+                <div id="pomodoro-phase" class="pomodoro-phase">집중 시간</div>
+                <div id="pomodoro-display" class="pomodoro-display">50:00</div>
+                <div id="pomodoro-cycle" class="pomodoro-cycle">진행 횟수: 0회</div>
+                <div class="pomodoro-controls">
+                  <button id="pomodoro-toggle" class="btn btn-yellow btn-lg">시작</button>
+                  <button id="pomodoro-skip" class="btn btn-gray btn-lg">다음 단계</button>
+                  <button id="pomodoro-reset" class="btn btn-gray btn-lg">초기화</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbox-buttons">
+          <button id="open-checklist" class="btn btn-green">✅ 체크리스트</button>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- ===== 체크리스트 사이드 패널 (밀림 형식) ===== -->
+    <aside id="checklist-panel" class="side-panel">
+      <div class="side-panel-inner">
+        <button class="modal-close" id="close-checklist">✕</button>
+        <h2>✅ 할일 체크리스트</h2>
+
+        <form id="todo-form" class="todo-form">
+          <div class="form-row">
+            <label>과목
+              <input type="text" id="todo-subject" placeholder="예: 수학" required>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>내용
+              <input type="text" id="todo-content" placeholder="예: 3단원 문제풀이" required>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>중요도
+              <select id="todo-importance">
+                <option value="상">상</option>
+                <option value="중" selected>중</option>
+                <option value="하">하</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>시작일 (선택)
+              <input type="date" id="todo-start">
+            </label>
+            <label>마감일 (선택)
+              <input type="date" id="todo-end">
+            </label>
+          </div>
+          <button type="submit" class="btn btn-green todo-add-btn">+ 할일 추가</button>
+        </form>
+
+        <div class="todo-sort-row">
+          <label for="todo-sort">정렬</label>
+          <select id="todo-sort">
+            <option value="importance">중요도순</option>
+            <option value="deadline">마감임박순</option>
+          </select>
+        </div>
+
+        <div class="todo-list-wrap">
+          <table class="todo-table">
+            <thead>
+              <tr>
+                <th>완료</th>
+                <th>과목</th>
+                <th>내용</th>
+                <th>중요도</th>
+                <th>기간</th>
+                <th>소요시간</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="todo-list"></tbody>
+          </table>
+          <p id="todo-empty" class="todo-empty">등록된 할일이 없습니다.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===== 설정 모달 ===== -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal settings-modal">
+      <button class="modal-close" data-close="settings-modal">✕</button>
+      <h2>⚙️ 방 설정</h2>
+
+      <div class="settings-section">
+        <div class="settings-label">사진</div>
+        <label for="photo-upload" class="upload-btn">📷 사진 업로드</label>
+        <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">배경</div>
+        <div class="settings-row">
+          <label for="bg-upload" class="upload-btn">🖼 배경 업로드</label>
+          <input type="file" id="bg-upload" accept="image/*" hidden>
+          <button id="bg-reset-btn" class="upload-btn">배경 초기화 (회색)</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <label class="settings-label" for="speed-slider">이동 속도</label>
         <input type="range" id="speed-slider" min="0" max="200" value="40">
       </div>
 
-      <button id="open-message-editor" class="upload-btn" title="응원 멘트 편집">💬 응원 멘트 편집</button>
-    </div>
-
-    <div id="wander-layer"></div>
-
-    <div id="photo-message" class="photo-message hidden"></div>
-  </section>
-
-  <!-- ===== 아래쪽 : 순공시간 / 뽀모도로 / 체크리스트 ===== -->
-  <section id="toolbox">
-
-    <div class="study-panel">
-      <div class="study-header">
-        <button id="open-history" class="icon-btn" title="기록 보기">🗂 기록</button>
-        <h2>순공시간</h2>
-        <button id="open-time-edit" class="icon-btn" title="시간 수정">✏️</button>
-
-        <div id="time-edit-popover" class="popover hidden">
-          <div class="popover-row">
-            <span>1시간</span>
-            <button class="btn btn-gray btn-sm" data-delta="-3600000">－</button>
-            <button class="btn btn-blue btn-sm" data-delta="3600000">＋</button>
-          </div>
-          <div class="popover-row">
-            <span>10분</span>
-            <button class="btn btn-gray btn-sm" data-delta="-600000">－</button>
-            <button class="btn btn-blue btn-sm" data-delta="600000">＋</button>
-          </div>
-          <div class="popover-row">
-            <span>1분</span>
-            <button class="btn btn-gray btn-sm" data-delta="-60000">－</button>
-            <button class="btn btn-blue btn-sm" data-delta="60000">＋</button>
-          </div>
-        </div>
+      <div class="settings-section">
+        <label class="settings-label" for="size-slider">사진 크기</label>
+        <input type="range" id="size-slider" min="40" max="220" value="100">
       </div>
 
-      <div id="stopwatch-display" class="stopwatch-display">00:00:00</div>
-      <div class="stopwatch-controls">
-        <button id="stopwatch-toggle" class="btn btn-blue">시작</button>
+      <div class="settings-section settings-toggle-row">
+        <label><input type="checkbox" id="turbulent-toggle"> 사진이 격정적으로 움직이기</label>
       </div>
 
-      <div class="pomodoro-inline">
-        <h3>🍅 뽀모도로 타이머 <span class="pomodoro-sub">(50분 집중 · 10분 휴식 반복)</span></h3>
-        <div id="pomodoro-phase" class="pomodoro-phase">집중 시간</div>
-        <div id="pomodoro-display" class="pomodoro-display">50:00</div>
-        <div id="pomodoro-cycle" class="pomodoro-cycle">진행 횟수: 0회</div>
-        <div class="pomodoro-controls">
-          <button id="pomodoro-toggle" class="btn btn-yellow">시작</button>
-          <button id="pomodoro-skip" class="btn btn-gray">다음 단계</button>
-          <button id="pomodoro-reset" class="btn btn-gray">초기화</button>
-        </div>
+      <div class="settings-section settings-toggle-row">
+        <label><input type="checkbox" id="flip-toggle" checked> 벽에 부딪히면 사진 좌우 반전</label>
+        <p class="settings-hint">사진을 더블클릭하면 그 사진만 반전 여부를 따로 설정할 수 있어요.</p>
+      </div>
+
+      <div class="settings-section">
+        <button id="open-message-editor" class="upload-btn">💬 응원 멘트 편집</button>
       </div>
     </div>
-
-    <div class="toolbox-buttons">
-      <button id="open-checklist" class="btn btn-green">✅ 체크리스트</button>
-    </div>
-
-  </section>
+  </div>
 
   <!-- ===== 기록 모달 ===== -->
   <div id="history-modal" class="modal-overlay hidden">
     <div class="modal">
       <button class="modal-close" data-close="history-modal">✕</button>
       <h2>🗂 순공시간 기록</h2>
+      <p class="pomodoro-desc">기록은 생성된 지 24시간이 지나면 자동으로 사라져요.</p>
       <div class="history-list-wrap">
         <table class="history-table">
           <thead>
-            <tr><th>시작</th><th>종료</th><th>지속시간</th></tr>
+            <tr><th>시작</th><th>종료</th><th>지속시간</th><th></th></tr>
           </thead>
           <tbody id="history-list"></tbody>
         </table>
         <p id="history-empty" class="todo-empty">아직 기록이 없습니다.</p>
       </div>
-      <button id="history-clear-btn" class="btn btn-gray">기록 전체 삭제</button>
+    </div>
+  </div>
+
+  <!-- ===== 달력 모달 ===== -->
+  <div id="calendar-modal" class="modal-overlay hidden">
+    <div class="modal calendar-modal">
+      <button class="modal-close" data-close="calendar-modal">✕</button>
+      <h2>📅 순공시간 달력</h2>
+      <div class="calendar-nav">
+        <button id="cal-prev" class="btn btn-gray btn-sm">‹</button>
+        <span id="cal-month-label" class="cal-month-label"></span>
+        <button id="cal-next" class="btn btn-gray btn-sm">›</button>
+      </div>
+      <div class="calendar-weekdays">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+      <p id="calendar-detail" class="calendar-detail">날짜를 선택하면 그 날의 순공시간을 볼 수 있어요.</p>
     </div>
   </div>
 
@@ -117,70 +254,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ===== 체크리스트 사이드 패널 ===== -->
-  <div id="checklist-backdrop" class="side-backdrop hidden"></div>
-  <aside id="checklist-panel" class="side-panel">
-    <button class="modal-close" id="close-checklist">✕</button>
-    <h2>✅ 할일 체크리스트</h2>
-
-    <form id="todo-form" class="todo-form">
-      <div class="form-row">
-        <label>과목
-          <input type="text" id="todo-subject" placeholder="예: 수학" required>
-        </label>
-      </div>
-      <div class="form-row">
-        <label>내용
-          <input type="text" id="todo-content" placeholder="예: 3단원 문제풀이" required>
-        </label>
-      </div>
-      <div class="form-row">
-        <label>중요도
-          <select id="todo-importance">
-            <option value="상">상</option>
-            <option value="중" selected>중</option>
-            <option value="하">하</option>
-          </select>
-        </label>
-      </div>
-      <div class="form-row">
-        <label>시작일 (선택)
-          <input type="date" id="todo-start">
-        </label>
-        <label>마감일 (선택)
-          <input type="date" id="todo-end">
-        </label>
-      </div>
-      <button type="submit" class="btn btn-green todo-add-btn">+ 할일 추가</button>
-    </form>
-
-    <div class="todo-sort-row">
-      <label for="todo-sort">정렬</label>
-      <select id="todo-sort">
-        <option value="importance">중요도순</option>
-        <option value="deadline">마감임박순</option>
-      </select>
-    </div>
-
-    <div class="todo-list-wrap">
-      <table class="todo-table">
-        <thead>
-          <tr>
-            <th>완료</th>
-            <th>과목</th>
-            <th>내용</th>
-            <th>중요도</th>
-            <th>기간</th>
-            <th>소요시간</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="todo-list"></tbody>
-      </table>
-      <p id="todo-empty" class="todo-empty">등록된 할일이 없습니다.</p>
-    </div>
-  </aside>
 
   <script src="script.js"></script>
 </body>
