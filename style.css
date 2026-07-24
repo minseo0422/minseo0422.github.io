@@ -33,7 +33,7 @@ body {
   position: relative;
   height: 50%;
   overflow: hidden;
-  border-bottom: 4px solid #4a3323;
+  border-bottom: 1px solid #4a3323;
   flex-shrink: 0;
 }
 
@@ -196,19 +196,19 @@ body {
 }
 
 .panel-row {
+  position: relative;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
   width: 100%;
 }
 
 .side-btn-stack {
+  position: absolute;
+  right: 0;
+  top: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-top: 6px;
 }
 
 .study-panel {
@@ -817,7 +817,12 @@ body {
   .form-row {
     flex-direction: column;
   }
+  .panel-row {
+    flex-direction: column;
+    align-items: center;
+  }
   .side-btn-stack {
+    position: static;
     flex-direction: row;
     width: 100%;
   }
