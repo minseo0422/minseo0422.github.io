@@ -27,126 +27,58 @@ body {
 .room-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #f6e2c1 0%, #f6e2c1 65%, #d8a463 65%, #d8a463 100%);
+  background-color: #cfcfcf;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-.wall {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 65%;
-  background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.15) 0 2px, transparent 2px 120px),
-    linear-gradient(180deg, #f8e8ce, #f0d8ac);
-}
-
-.window {
-  position: absolute;
-  top: 8%;
-  right: 8%;
-  width: 22%;
-  aspect-ratio: 4 / 5;
-  background: linear-gradient(180deg, #aee3f5, #6fc3e6);
-  border: 8px solid #ffffff;
-  border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-.window-cross-v {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  margin-left: -3px;
-  background: #ffffff;
-}
-
-.window-cross-h {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 6px;
-  margin-top: -3px;
-  background: #ffffff;
-}
-
-.rug {
-  position: absolute;
-  bottom: 6%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30%;
-  height: 12%;
-  background: #e07a5f;
-  border-radius: 50%;
-  opacity: 0.85;
-  box-shadow: 0 0 0 8px rgba(255,255,255,0.4) inset;
-}
-
-.desk {
-  position: absolute;
-  bottom: 2%;
-  left: 5%;
-  width: 20%;
-  height: 16%;
-  background: #8a5a3b;
-  border-radius: 4px;
-  box-shadow: inset 0 -8px 0 rgba(0,0,0,0.15);
-}
-
-.shelf {
-  position: absolute;
-  top: 10%;
-  left: 6%;
-  width: 16%;
-  height: 6%;
-  background: #8a5a3b;
-  border-radius: 3px;
-}
-.shelf::before, .shelf::after {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  width: 3px;
-  height: 10%;
-  background: #6b4327;
-}
-.shelf::before { left: 4px; }
-.shelf::after { right: 4px; }
-
-.plant {
-  position: absolute;
-  bottom: 3%;
-  right: 6%;
-  font-size: 3rem;
-  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.2));
-}
-
-.upload-area {
+.top-controls {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 20;
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .upload-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 9px 14px;
   background: #ffffffdd;
   border: 2px solid #4a3323;
   border-radius: 999px;
   font-weight: 600;
+  font-size: 0.88rem;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   user-select: none;
   transition: transform 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
 }
 .upload-btn:hover {
   background: #ffffff;
   transform: translateY(-1px);
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffffdd;
+  border: 2px solid #4a3323;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.speed-control input[type="range"] {
+  width: 100px;
 }
 
 #wander-layer {
@@ -158,38 +90,44 @@ body {
 
 .wander-photo {
   position: absolute;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #fff;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
   cursor: grab;
   pointer-events: auto;
   touch-action: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .wander-photo:active {
   cursor: grabbing;
 }
 .wander-photo.dragging {
-  box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.45));
   z-index: 50;
 }
 
 .photo-message {
   position: absolute;
-  bottom: 14px;
+  transform: translate(-50%, -100%);
+  background: #ffffff;
+  color: #333;
+  padding: 9px 15px;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  max-width: 220px;
+  text-align: center;
+  z-index: 60;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+.photo-message::after {
+  content: "";
+  position: absolute;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: #4a3323e6;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-size: 0.95rem;
-  z-index: 60;
-  max-width: 80%;
-  text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  border: 7px solid transparent;
+  border-top-color: #ffffff;
 }
 .photo-message.hidden {
   display: none;
@@ -202,26 +140,93 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 28px;
-  padding: 16px;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 18px 16px;
+  overflow-y: auto;
 }
 
-.stopwatch-panel {
+.study-panel {
+  width: min(92vw, 480px);
   text-align: center;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-.stopwatch-panel h2 {
-  margin: 0 0 8px;
+.study-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.study-header h2 {
+  margin: 0;
   color: #333;
 }
 
+.icon-btn {
+  border: none;
+  background: #f0f0f0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.icon-btn:hover {
+  background: #e4e4e4;
+}
+#open-history {
+  position: absolute;
+  left: 0;
+}
+#open-time-edit {
+  position: absolute;
+  right: 0;
+}
+
+.popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  padding: 12px;
+  z-index: 40;
+  width: 200px;
+}
+.popover.hidden {
+  display: none;
+}
+.popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
 .stopwatch-display {
-  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: #222;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   letter-spacing: 1px;
 }
 
@@ -229,6 +234,54 @@ body {
   display: flex;
   gap: 12px;
   justify-content: center;
+  margin-bottom: 18px;
+}
+
+.pomodoro-inline {
+  border-top: 1px dashed #ddd;
+  padding-top: 14px;
+  text-align: center;
+}
+.pomodoro-inline h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+.pomodoro-sub {
+  font-weight: 400;
+  color: #999;
+  font-size: 0.78rem;
+}
+
+.pomodoro-desc {
+  color: #777;
+  margin-top: -6px;
+}
+
+.pomodoro-phase {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #d9822b;
+  margin-top: 8px;
+}
+
+.pomodoro-display {
+  font-size: 2.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin: 6px 0;
+}
+
+.pomodoro-cycle {
+  color: #888;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.pomodoro-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .toolbox-buttons {
@@ -326,48 +379,96 @@ body {
   background: #e0e0e0;
 }
 
-/* ============ 뽀모도로 모달 ============ */
-.pomodoro-modal {
-  text-align: center;
-}
-
-.pomodoro-desc {
-  color: #777;
-  margin-top: -6px;
-}
-
-.pomodoro-phase {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #d9822b;
-  margin-top: 18px;
-}
-
-.pomodoro-display {
-  font-size: 3.2rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  margin: 10px 0;
-}
-
-.pomodoro-cycle {
-  color: #888;
+/* ============ 기록 모달 ============ */
+.history-list-wrap {
+  max-height: 320px;
+  overflow-y: auto;
   margin-bottom: 16px;
 }
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.history-table th, .history-table td {
+  padding: 8px 6px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
 
-.pomodoro-controls {
+/* ============ 응원 멘트 편집 ============ */
+.message-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.message-edit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.message-edit-row input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.message-edit-row button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.message-edit-row button:hover {
+  color: #e63946;
+}
+.message-editor-actions {
   display: flex;
   gap: 10px;
-  justify-content: center;
   flex-wrap: wrap;
 }
 
-/* ============ 체크리스트 모달 ============ */
+/* ============ 체크리스트 사이드 패널 ============ */
+.side-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 90;
+}
+.side-backdrop.hidden {
+  display: none;
+}
+
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(92vw, 420px);
+  background: #fff;
+  box-shadow: -6px 0 24px rgba(0,0,0,0.25);
+  z-index: 95;
+  padding: 24px 22px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.side-panel.open {
+  transform: translateX(0);
+}
+
 .todo-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid #eee;
 }
@@ -399,6 +500,20 @@ body {
   margin-top: 4px;
 }
 
+.todo-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  color: #555;
+}
+.todo-sort-row select {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
 .todo-list-wrap {
   overflow-x: auto;
 }
@@ -406,11 +521,11 @@ body {
 .todo-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .todo-table th, .todo-table td {
-  padding: 8px 6px;
+  padding: 8px 5px;
   text-align: center;
   border-bottom: 1px solid #eee;
   white-space: nowrap;
@@ -419,7 +534,7 @@ body {
 .todo-table td.content-cell {
   white-space: normal;
   text-align: left;
-  max-width: 160px;
+  max-width: 140px;
 }
 
 .todo-table tr.done td {
@@ -430,6 +545,20 @@ body {
 .importance-상 { color: #e63946; font-weight: 700; }
 .importance-중 { color: #d9822b; font-weight: 700; }
 .importance-하 { color: #3cb371; font-weight: 700; }
+
+.todo-duration-input {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.82rem;
+}
+.todo-duration-input:disabled {
+  background: #f4f4f4;
+  color: #bbb;
+  border-color: #eee;
+}
 
 .todo-delete-btn {
   border: none;
@@ -459,5 +588,8 @@ body {
   }
   .toolbox-buttons .btn {
     width: 100%;
+  }
+  .side-panel {
+    width: 100vw;
   }
 }
