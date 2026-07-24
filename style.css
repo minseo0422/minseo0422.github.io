@@ -532,6 +532,15 @@ body {
   border-radius: 8px;
   font-size: 0.85rem;
 }
+#toolbox-color-input {
+  width: 48px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  background: none;
+}
 
 /* ============ 기록 모달 ============ */
 .history-list-wrap {

@@ -797,6 +797,32 @@ const SettingsStore = (function () {
 })();
 
 /* =========================================================
+   아래 화면(도구 패널) 배경색
+========================================================= */
+(function toolboxColor() {
+  const DEFAULT_COLOR = "#fdfaf5";
+  const toolbox = document.getElementById("toolbox");
+  const colorInput = document.getElementById("toolbox-color-input");
+  const resetBtn = document.getElementById("toolbox-color-reset");
+
+  const saved = SettingsStore.load();
+  const initialColor = saved.toolboxColor || DEFAULT_COLOR;
+  toolbox.style.backgroundColor = initialColor;
+  colorInput.value = initialColor;
+
+  colorInput.addEventListener("input", () => {
+    toolbox.style.backgroundColor = colorInput.value;
+    SettingsStore.save({ toolboxColor: colorInput.value });
+  });
+
+  resetBtn.addEventListener("click", () => {
+    colorInput.value = DEFAULT_COLOR;
+    toolbox.style.backgroundColor = DEFAULT_COLOR;
+    SettingsStore.save({ toolboxColor: DEFAULT_COLOR });
+  });
+})();
+
+/* =========================================================
    7-1. 배경음악
 ========================================================= */
 (function backgroundMusic() {
