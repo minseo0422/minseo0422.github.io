@@ -196,7 +196,6 @@ body {
 }
 
 .panel-row {
-  position: relative;
   display: flex;
   justify-content: center;
   width: 100%;
@@ -204,8 +203,8 @@ body {
 
 .side-btn-stack {
   position: absolute;
-  right: 0;
-  top: 0;
+  right: 12px;
+  bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;

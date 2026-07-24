@@ -736,7 +736,7 @@ const SettingsStore = (function () {
 
   sortSelect.addEventListener("change", render);
 
-  openBtn.addEventListener("click", () => panel.classList.add("open"));
+  openBtn.addEventListener("click", () => panel.classList.toggle("open"));
   closeBtn.addEventListener("click", () => panel.classList.remove("open"));
 
   render();
@@ -943,8 +943,8 @@ const SettingsStore = (function () {
   });
 
   openBtn.addEventListener("click", () => {
-    render();
-    panel.classList.add("open");
+    const isOpen = panel.classList.toggle("open");
+    if (isOpen) render();
   });
   closeBtn.addEventListener("click", () => panel.classList.remove("open"));
 })();
