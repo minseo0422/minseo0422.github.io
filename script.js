@@ -761,6 +761,8 @@ const StudyStore = (function () {
   const STORAGE_KEY = "study-room-habits";
 
   const openBtn = document.getElementById("open-habits");
+  const closeBtn = document.getElementById("close-habits");
+  const panel = document.getElementById("habit-panel");
   const form = document.getElementById("habit-form");
   const nameInput = document.getElementById("habit-name");
   const listEl = document.getElementById("habit-list");
@@ -832,8 +834,9 @@ const StudyStore = (function () {
 
   openBtn.addEventListener("click", () => {
     render();
-    openModal("habit-modal");
+    panel.classList.add("open");
   });
+  closeBtn.addEventListener("click", () => panel.classList.remove("open"));
 })();
 
 /* =========================================================

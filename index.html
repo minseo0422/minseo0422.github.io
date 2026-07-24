@@ -158,6 +158,32 @@
         </div>
       </div>
     </aside>
+
+    <!-- ===== 습관 만들기 사이드 패널 (밀림 형식, 매일 새벽 5시 완료여부 초기화) ===== -->
+    <aside id="habit-panel" class="side-panel">
+      <div class="side-panel-inner">
+        <button class="modal-close" id="close-habits">✕</button>
+        <h2>🔁 습관 만들기</h2>
+        <p class="pomodoro-desc">완료 체크는 매일 새벽 5시에 자동으로 초기화돼요.</p>
+
+        <form id="habit-form" class="todo-form">
+          <div class="form-row">
+            <label>습관 이름
+              <input type="text" id="habit-name" placeholder="예: 물 8잔 마시기" required>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-purple todo-add-btn">+ 습관 추가</button>
+        </form>
+
+        <div class="todo-list-wrap">
+          <table class="todo-table">
+            <thead><tr><th>완료</th><th>습관</th><th></th></tr></thead>
+            <tbody id="habit-list"></tbody>
+          </table>
+          <p id="habit-empty" class="todo-empty">등록된 습관이 없습니다.</p>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <!-- ===== 설정 모달 ===== -->
@@ -271,32 +297,6 @@
       <div class="message-editor-actions">
         <button id="add-message-btn" class="btn btn-green">+ 문구 추가</button>
         <button id="reset-messages-btn" class="btn btn-gray">기본값으로 초기화</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== 습관 만들기 모달 (매일 새벽 5시 완료여부 초기화) ===== -->
-  <div id="habit-modal" class="modal-overlay hidden">
-    <div class="modal">
-      <button class="modal-close" data-close="habit-modal">✕</button>
-      <h2>🔁 습관 만들기</h2>
-      <p class="pomodoro-desc">완료 체크는 매일 새벽 5시에 자동으로 초기화돼요.</p>
-
-      <form id="habit-form" class="todo-form">
-        <div class="form-row">
-          <label>습관 이름
-            <input type="text" id="habit-name" placeholder="예: 물 8잔 마시기" required>
-          </label>
-        </div>
-        <button type="submit" class="btn btn-purple todo-add-btn">+ 습관 추가</button>
-      </form>
-
-      <div class="todo-list-wrap">
-        <table class="todo-table">
-          <thead><tr><th>완료</th><th>습관</th><th></th></tr></thead>
-          <tbody id="habit-list"></tbody>
-        </table>
-        <p id="habit-empty" class="todo-empty">등록된 습관이 없습니다.</p>
       </div>
     </div>
   </div>
